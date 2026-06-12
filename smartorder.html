@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AL-LAZIZ Food Park</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --maroon:#6B1414;--maroon-d:#4e0f0f;--gold:#C9962A;--gold-l:#f5d36e;
+  --ivory:#FBF8F2;--amber:#FFF3DC;--charcoal:#2C2C2C;--gray:#888;
+  --border:#e8e0d0;--white:#fff;--green:#25D366;--radius:12px;
+  --shadow:0 2px 12px rgba(107,20,20,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--ivory);color:var(--charcoal);padding-bottom:110px;min-height:100vh;}
+
+/* ── HEADER ── */
+header{background:var(--maroon);padding:14px 16px 11px;text-align:center;position:sticky;top:0;z-index:200;box-shadow:0 3px 16px rgba(0,0,0,0.2);}
+.h-top{display:flex;justify-content:flex-end;margin-bottom:4px;}
+.admin-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.admin-btn:hover{background:rgba(255,255,255,.25);}
+.h-badge{display:inline-block;background:var(--gold);color:var(--maroon-d);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:4px;}
+header h1{font-family:'Playfair Display',serif;font-size:23px;color:var(--gold);letter-spacing:.5px;}
+header p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
+
+/* ── WAIT PILL ── */
+.wait-pill{display:inline-flex;align-items:center;gap:5px;background:var(--amber);border:1px solid #e8c96a;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:#7a5c00;margin:9px 12px 0;}
+.wait-dot{width:7px;height:7px;border-radius:50%;background:#e6a817;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── SETUP ── */
+.setup-card{background:var(--white);margin:10px 12px 0;border-radius:var(--radius);padding:13px;box-shadow:var(--shadow);border:1px solid var(--border);}
+.s-label{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.setup-card select,.setup-card input[type=text]{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;color:var(--charcoal);background:var(--ivory);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B1414' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;transition:border-color .2s;}
+.setup-card select:focus,.setup-card input[type=text]:focus{outline:none;border-color:var(--maroon);}
+#parcel-details{display:none;margin-top:9px;}
+.order-tag{display:none;margin-top:9px;background:var(--amber);border-radius:8px;padding:8px 13px;font-size:13px;color:var(--maroon);font-weight:600;border-left:3px solid var(--gold);}
+.order-tag.show{display:block;}
+.v-err{font-size:12px;color:#c0392b;margin-top:5px;display:none;padding-left:4px;}
+.v-err.show{display:block;}
+.err-border{border-color:#c0392b!important;}
+
+/* ── CATEGORY NAV ── */
+.cat-nav-wrap{position:sticky;top:77px;z-index:190;background:var(--ivory);padding:9px 12px;border-bottom:1px solid var(--border);}
+.cat-nav{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;}
+.cat-nav::-webkit-scrollbar{display:none;}
+.cat-btn{display:flex;align-items:center;gap:5px;background:var(--white);border:1.5px solid var(--border);color:var(--gray);padding:7px 13px;border-radius:30px;white-space:nowrap;cursor:pointer;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;transition:all .2s;flex-shrink:0;}
+.cat-btn.active{background:var(--maroon);border-color:var(--maroon);color:white;box-shadow:0 2px 10px rgba(107,20,20,.25);}
+.cat-btn:hover:not(.active){border-color:var(--maroon);color:var(--maroon);}
+
+/* ── MENU ── */
+.menu-wrap{padding:11px 12px;}
+.category-section{display:none;}
+.category-section.active{display:block;}
+.cat-header{margin-bottom:11px;}
+.cat-header h2{font-family:'Playfair Display',serif;font-size:20px;color:var(--maroon);}
+.cat-note{margin-top:6px;background:var(--amber);border-left:3px solid var(--gold);padding:7px 11px;border-radius:0 8px 8px 0;font-size:12px;color:#5a4a1a;line-height:1.5;}
+
+/* ── ITEM CARD ── */
+.item-card{background:var(--white);border-radius:var(--radius);padding:12px;margin-bottom:10px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;transition:box-shadow .2s;animation:fadeUp .3s ease both;position:relative;}
+.item-card.out-of-stock{opacity:.5;pointer-events:none;}
+.item-card.out-of-stock::after{content:'❌ Stock Khatam';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.7);color:white;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;}
+.item-card:hover{box-shadow:0 4px 20px rgba(107,20,20,.12);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.badge-wrap{position:absolute;top:-1px;left:12px;display:flex;gap:4px;}
+.badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:0 0 6px 6px;letter-spacing:.5px;text-transform:uppercase;}
+.badge-best{background:#e63946;color:white;}
+.badge-pop{background:#f4a261;color:#4a2000;}
+.badge-veg{background:#2d6a4f;color:white;}
+.has-badge{padding-top:20px;}
+.item-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);margin-top:6px;flex-shrink:0;}
+.item-body{flex:1;min-width:0;}
+.item-name{font-size:15px;font-weight:600;color:var(--charcoal);margin-bottom:2px;line-height:1.3;}
+.item-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+.item-desc{font-size:12px;color:var(--gray);margin-bottom:5px;line-height:1.4;}
+.spice{display:flex;align-items:center;gap:2px;}
+.spice-dot{width:8px;height:8px;border-radius:50%;}
+.spice-dot.on{background:#e63946;}
+.spice-dot.off{background:#e8e0d0;}
+.spice-label{font-size:10px;color:var(--gray);margin-left:3px;}
+.item-price{font-size:13px;font-weight:600;color:var(--maroon);}
+.ptag{background:var(--amber);padding:2px 7px;border-radius:20px;margin-right:3px;display:inline-block;}
+.item-controls{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;min-width:105px;}
+.variant-sel{width:100%;padding:6px 7px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:'Inter',sans-serif;color:var(--charcoal);background:var(--ivory);cursor:pointer;}
+.variant-sel:focus{outline:none;border-color:var(--maroon);}
+.add-row{display:flex;align-items:center;gap:5px;width:100%;}
+.qty-inp{width:40px;text-align:center;padding:7px 3px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;color:var(--charcoal);background:var(--ivory);}
+.qty-inp:focus{outline:none;border-color:var(--maroon);}
+.add-btn{flex:1;background:var(--maroon);color:white;border:none;padding:8px 9px;border-radius:7px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .2s,transform .1s;}
+.add-btn:hover{background:var(--maroon-d);}
+.add-btn:active{transform:scale(.97);}
+.add-btn.added{background:#2d6a4f;}
+
+/* ── BEVERAGES ── */
+.bev-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.bev-card{background:var(--white);border-radius:var(--radius);padding:13px 11px;box-shadow:var(--shadow);border:1px solid var(--border);text-align:center;animation:fadeUp .3s ease both;transition:all .2s;position:relative;}
+.bev-card:hover{box-shadow:0 4px 18px rgba(107,20,20,.14);border-color:var(--maroon);}
+.bev-icon{font-size:26px;margin-bottom:5px;}
+.bev-name{font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:2px;}
+.bev-size{font-size:11px;color:var(--gray);margin-bottom:5px;}
+.bev-price{font-size:14px;font-weight:700;color:var(--maroon);margin-bottom:9px;}
+.bev-stepper{display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;}
+.bev-btn{background:var(--ivory);border:none;padding:6px 10px;font-size:16px;font-weight:700;color:var(--maroon);cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;line-height:1;}
+.bev-btn:hover{background:var(--amber);}
+.bev-qty{min-width:30px;text-align:center;font-size:14px;font-weight:700;color:var(--charcoal);padding:6px 3px;font-family:'Inter',sans-serif;}
+.bev-added-badge{position:absolute;top:7px;right:7px;background:var(--maroon);color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;display:none;}
+.bev-added-badge.show{display:block;}
+
+/* ── FLOATING CART ── */
+.cart-float{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--maroon);color:white;width:calc(100% - 24px);max-width:420px;border-radius:14px;padding:13px 17px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 6px 24px rgba(107,20,20,.35);cursor:pointer;z-index:999;transition:transform .2s;}
+.cart-float:hover{transform:translateX(-50%) translateY(-2px);}
+.cf-left{display:flex;align-items:center;gap:8px;}
+.cf-badge{background:var(--gold);color:var(--maroon-d);font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.cf-text{font-size:13px;opacity:.8;}
+.cf-total{font-size:17px;font-weight:700;color:var(--gold-l);}
+
+/* ── MODALS BASE ── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:flex-end;justify-content:center;}
+.modal-ov.open{display:flex;}
+.modal-box{background:var(--white);width:100%;max-width:460px;border-radius:20px 20px 0 0;padding:0 0 26px;max-height:92vh;display:flex;flex-direction:column;animation:slideUp .3s ease;}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-hdr{padding:16px 17px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.modal-hdr h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--maroon);}
+.modal-close{width:29px;height:29px;background:var(--ivory);border:1px solid var(--border);border-radius:50%;font-size:16px;color:var(--gray);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.modal-close:hover{background:var(--border);}
+
+/* ── CART MODAL ── */
+.modal-tag{margin:9px 17px 0;background:var(--amber);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--maroon);font-weight:600;flex-shrink:0;}
+#cart-items{overflow-y:auto;padding:9px 17px;flex:1;scrollbar-width:thin;}
+.cart-empty{text-align:center;padding:34px 20px;color:var(--gray);}
+.cart-empty .e-icon{font-size:36px;margin-bottom:9px;}
+.cart-empty p{font-size:14px;}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);gap:10px;}
+.cart-item:last-child{border-bottom:none;}
+.ci-info{flex:1;min-width:0;}
+.ci-name{font-size:14px;font-weight:600;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ci-var{font-size:11px;color:var(--gray);margin-top:1px;}
+.ci-price{font-size:12px;color:var(--maroon);font-weight:600;margin-top:2px;}
+.ci-ctrl{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.ci-btn{width:27px;height:27px;border-radius:50%;border:1.5px solid var(--border);background:var(--ivory);font-size:15px;font-weight:700;color:var(--maroon);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ci-btn:hover{background:var(--maroon);color:white;border-color:var(--maroon);}
+.ci-qty{width:22px;text-align:center;font-size:14px;font-weight:700;}
+.modal-foot{padding:12px 17px 0;flex-shrink:0;}
+.total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:2px solid var(--border);margin-bottom:11px;}
+.total-lbl{font-size:15px;font-weight:600;}
+.total-amt{font-family:'Playfair Display',serif;font-size:22px;color:var(--maroon);font-weight:700;}
+.checkout-btn{width:100%;background:var(--green);color:white;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s;box-shadow:0 4px 14px rgba(37,211,102,.3);}
+.checkout-btn:hover{background:#1ebc59;}
+
+/* ── BILL MODAL ── */
+.bill-box{background:var(--white);width:100%;max-width:420px;border-radius:20px 20px 0 0;max-height:92vh;display:flex;flex-direction:column;animation:slideUp .3s ease;padding-bottom:22px;}
+.bill-body{padding:14px 17px;overflow-y:auto;flex:1;}
+.bill-restaurant-name{text-align:center;padding:8px 0 13px;border-bottom:2px dashed var(--border);margin-bottom:13px;}
+.bill-restaurant-name h2{font-family:'Playfair Display',serif;font-size:19px;color:var(--maroon);}
+.bill-restaurant-name p{font-size:12px;color:var(--gray);margin-top:2px;}
+.bill-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border);}
+.bill-row:last-child{border:none;}
+.bill-divider{border:none;border-top:2px dashed var(--border);margin:9px 0;}
+.bill-total-row{display:flex;justify-content:space-between;font-size:17px;font-weight:700;color:var(--maroon);padding:7px 0;}
+.bill-meta{font-size:11px;color:var(--gray);text-align:center;margin-top:9px;}
+.bill-actions{display:flex;gap:9px;padding:0 17px;flex-shrink:0;}
+.bill-wa-btn{flex:1;background:var(--green);color:white;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.bill-close-btn{background:var(--ivory);border:1.5px solid var(--border);color:var(--charcoal);padding:13px 15px;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+
+/* ── FEEDBACK MODAL ── */
+.fb-box{background:var(--white);width:100%;max-width:420px;border-radius:20px 20px 0 0;padding:0 0 26px;animation:slideUp .3s ease;display:flex;flex-direction:column;}
+.fb-body{padding:14px 17px;overflow-y:auto;}
+.fb-stars{display:flex;justify-content:center;gap:9px;margin:14px 0 8px;}
+.star-btn{font-size:34px;background:none;border:none;cursor:pointer;transition:transform .15s;filter:grayscale(1);opacity:.4;}
+.star-btn.active{filter:none;opacity:1;transform:scale(1.1);}
+.fb-label{text-align:center;font-size:14px;color:var(--gray);margin-bottom:13px;font-weight:500;}
+.fb-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Inter',sans-serif;color:var(--charcoal);resize:none;height:80px;background:var(--ivory);}
+.fb-textarea:focus{outline:none;border-color:var(--maroon);}
+.fb-chips{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0;}
+.chip{background:var(--ivory);border:1.5px solid var(--border);color:var(--gray);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.chip.sel{background:var(--amber);border-color:var(--gold);color:var(--maroon-d);font-weight:600;}
+.fb-actions{display:flex;flex-direction:column;gap:7px;padding:9px 17px 0;flex-shrink:0;}
+.fb-google-btn{width:100%;background:var(--maroon);color:white;border:none;padding:13px;border-radius:12px;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.fb-skip-btn{width:100%;background:none;border:1.5px solid var(--border);color:var(--gray);padding:10px;border-radius:10px;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;}
+
+/* ── ADMIN MODAL ── */
+.admin-box{background:var(--white);width:100%;max-width:500px;border-radius:20px 20px 0 0;max-height:95vh;display:flex;flex-direction:column;animation:slideUp .3s ease;padding-bottom:22px;}
+.admin-body{padding:13px 15px;overflow-y:auto;flex:1;}
+.admin-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:13px;overflow-x:auto;scrollbar-width:none;}
+.admin-tabs::-webkit-scrollbar{display:none;}
+.atab{flex-shrink:0;padding:8px 13px;text-align:center;font-size:12px;font-weight:600;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap;}
+.atab.active{color:var(--maroon);border-bottom-color:var(--maroon);}
+.admin-section{display:none;}
+.admin-section.active{display:block;}
+
+/* ── TABLE MANAGER ── */
+.table-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--charcoal);}
+.leg-dot{width:10px;height:10px;border-radius:50%;}
+.leg-free{background:#2d6a4f;}
+.leg-occ{background:#e63946;}
+.leg-bill{background:#e6a817;}
+.table-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px;}
+.t-card{border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s;border:2px solid transparent;position:relative;}
+.t-card:hover{transform:scale(1.04);}
+.t-card.free{background:#e8f5e9;border-color:#2d6a4f;}
+.t-card.occupied{background:#fdecea;border-color:#e63946;}
+.t-card.bill_pending{background:#fff8e1;border-color:#e6a817;}
+.t-icon{font-size:18px;margin-bottom:2px;}
+.t-num{font-size:11px;font-weight:700;color:var(--charcoal);}
+.t-status{font-size:9px;font-weight:600;margin-top:2px;}
+.t-status.free{color:#2d6a4f;}
+.t-status.occupied{color:#c62828;}
+.t-status.bill_pending{color:#e65100;}
+.t-amount{font-size:9px;font-weight:700;color:var(--maroon);margin-top:1px;}
+.parcel-row{background:var(--ivory);border-radius:10px;padding:11px 13px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.parcel-row-left strong{font-size:13px;color:var(--charcoal);}
+.parcel-row-left span{display:block;font-size:11px;color:var(--gray);margin-top:1px;}
+
+/* ── TABLE DETAIL SHEET ── */
+.t-detail-box{background:var(--white);width:100%;max-width:420px;border-radius:20px 20px 0 0;max-height:90vh;display:flex;flex-direction:column;animation:slideUp .3s ease;padding-bottom:22px;}
+.t-detail-body{padding:14px 17px;overflow-y:auto;flex:1;}
+.t-detail-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.t-detail-icon{font-size:30px;}
+.t-detail-title{font-family:'Playfair Display',serif;font-size:19px;color:var(--maroon);}
+.t-detail-sub{font-size:12px;color:var(--gray);margin-top:2px;}
+.detail-section-title{font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin:12px 0 8px;}
+.t-order-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border);}
+.t-order-row:last-child{border:none;}
+.t-total-row{display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--maroon);padding:9px 0;border-top:2px dashed var(--border);margin-top:6px;}
+/* Payment buttons */
+.pay-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.pay-btn{padding:10px 8px;border-radius:9px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;border:2px solid transparent;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.pay-cash{background:#e8f5e9;color:#2d6a4f;border-color:#2d6a4f;}
+.pay-online{background:#e3f2fd;color:#1565c0;border-color:#1565c0;}
+.pay-btn:hover{opacity:.85;}
+.pay-btn.selected{color:white;}
+.pay-cash.selected{background:#2d6a4f;}
+.pay-online.selected{background:#1565c0;}
+.payment-status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:700;margin-top:8px;}
+.psb-cash{background:#e8f5e9;color:#2d6a4f;}
+.psb-online{background:#e3f2fd;color:#1565c0;}
+.psb-pending{background:#fff3e0;color:#e65100;}
+/* Table action buttons */
+.t-action-btns{display:flex;gap:8px;padding:0 17px;flex-shrink:0;flex-direction:column;}
+.t-act-row{display:flex;gap:8px;}
+.t-act-btn{flex:1;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.tab-free-btn{background:#e8f5e9;color:#2d6a4f;}
+.tab-free-btn:hover{background:#2d6a4f;color:white;}
+.tab-wa-btn{background:var(--green);color:white;}
+.tab-print-btn{background:var(--maroon);color:white;}
+
+/* ── ORDERS LIVE (Admin) ── */
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:#e8f5e9;color:#2d6a4f;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:12px;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#2d6a4f;animation:pulse 1.5s infinite;}
+.order-card{background:var(--ivory);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--border);}
+.oc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.oc-id{font-size:13px;font-weight:700;color:var(--maroon);}
+.oc-time{font-size:11px;color:var(--gray);}
+.oc-table{font-size:12px;color:var(--charcoal);font-weight:600;margin-bottom:4px;}
+.oc-items{font-size:12px;color:var(--gray);line-height:1.7;}
+.oc-total{font-size:14px;font-weight:700;color:var(--maroon);margin-top:5px;text-align:right;}
+.oc-status{display:flex;gap:6px;margin-top:8px;}
+.status-btn{flex:1;padding:6px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;border:none;transition:all .15s;}
+.s-pending{background:#fff3e0;color:#e65100;}
+.s-cooking{background:#e3f2fd;color:#1565c0;}
+.s-done{background:#e8f5e9;color:#2d6a4f;}
+.s-btn-active{outline:2px solid currentColor;outline-offset:1px;}
+.no-orders{text-align:center;padding:30px 20px;color:var(--gray);font-size:14px;}
+
+/* ── SALES SUMMARY ── */
+.sales-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;}
+.sales-card{background:var(--ivory);border-radius:10px;padding:12px;border:1px solid var(--border);text-align:center;}
+.sc-icon{font-size:22px;margin-bottom:4px;}
+.sc-val{font-family:'Playfair Display',serif;font-size:22px;color:var(--maroon);font-weight:700;}
+.sc-lbl{font-size:11px;color:var(--gray);margin-top:2px;}
+.top-items-title{font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:9px;}
+.top-item-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);}
+.top-item-row:last-child{border:none;}
+.ti-rank{width:20px;height:20px;background:var(--maroon);color:white;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ti-name{flex:1;font-size:13px;font-weight:500;}
+.ti-count{font-size:12px;color:var(--gray);}
+.ti-rev{font-size:13px;font-weight:700;color:var(--maroon);}
+
+/* ── MENU EDITOR (Admin) ── */
+.me-cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px;}
+.me-tab{background:var(--ivory);border:1.5px solid var(--border);color:var(--gray);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.me-tab.active{background:var(--maroon);border-color:var(--maroon);color:white;}
+.me-item-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.me-item-row:last-child{border:none;}
+.me-info{flex:1;min-width:0;}
+.me-name{font-size:13px;font-weight:600;color:var(--charcoal);}
+.me-price{font-size:12px;color:var(--maroon);margin-top:1px;}
+.me-toggle{position:relative;width:40px;height:22px;flex-shrink:0;}
+.me-toggle input{opacity:0;width:0;height:0;}
+.me-slider{position:absolute;inset:0;background:#ccc;border-radius:22px;cursor:pointer;transition:.3s;}
+.me-slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;}
+.me-toggle input:checked+.me-slider{background:var(--maroon);}
+.me-toggle input:checked+.me-slider:before{transform:translateX(18px);}
+.me-del-btn{background:#fdecea;border:1px solid #f5c2c2;color:#c62828;padding:5px 9px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;flex-shrink:0;}
+.me-del-btn:hover{background:#c62828;color:white;}
+/* Add item form */
+.add-item-form{background:var(--ivory);border-radius:10px;padding:13px;margin-top:14px;border:1px solid var(--border);}
+.add-item-form h4{font-size:13px;font-weight:700;color:var(--maroon);margin-bottom:11px;}
+.form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.form-inp{flex:1;min-width:120px;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:'Inter',sans-serif;color:var(--charcoal);background:var(--white);}
+.form-inp:focus{outline:none;border-color:var(--maroon);}
+.form-inp.sm{min-width:70px;flex:none;width:80px;}
+.form-sel{flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:'Inter',sans-serif;color:var(--charcoal);background:var(--white);cursor:pointer;}
+.form-sel:focus{outline:none;border-color:var(--maroon);}
+.form-add-btn{width:100%;background:var(--maroon);color:white;border:none;padding:11px;border-radius:9px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;margin-top:4px;transition:background .2s;}
+.form-add-btn:hover{background:var(--maroon-d);}
+.form-type-row{display:flex;gap:8px;margin-bottom:8px;}
+.type-opt{flex:1;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;text-align:center;transition:all .2s;background:var(--white);color:var(--gray);}
+.type-opt.sel{background:var(--maroon);border-color:var(--maroon);color:white;}
+.half-full-row{display:none;gap:8px;margin-bottom:8px;}
+.half-full-row.show{display:flex;}
+
+/* ── ORDER HISTORY ── */
+.hist-box{background:var(--white);width:100%;max-width:440px;border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column;animation:slideUp .3s ease;padding-bottom:22px;}
+.hist-body{padding:12px 16px;overflow-y:auto;flex:1;}
+.hist-item{background:var(--ivory);border-radius:10px;padding:11px;margin-bottom:9px;border:1px solid var(--border);}
+.hi-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.hi-id{font-size:12px;font-weight:700;color:var(--maroon);}
+.hi-time{font-size:11px;color:var(--gray);}
+.hi-detail{font-size:12px;color:var(--charcoal);line-height:1.6;}
+.hi-total{font-size:13px;font-weight:700;color:var(--maroon);margin-top:5px;}
+
+/* ── PASS GATE ── */
+.pass-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;display:flex;align-items:center;justify-content:center;}
+.pass-box{background:white;border-radius:16px;padding:28px 24px;width:280px;text-align:center;}
+.pass-box h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--maroon);margin-bottom:6px;}
+.pass-box p{font-size:13px;color:var(--gray);margin-bottom:16px;}
+.pass-input{width:100%;padding:11px;border:1.5px solid var(--border);border-radius:8px;font-size:18px;text-align:center;letter-spacing:6px;font-family:'Inter',sans-serif;margin-bottom:12px;}
+.pass-input:focus{outline:none;border-color:var(--maroon);}
+.pass-ok{width:100%;background:var(--maroon);color:white;border:none;padding:12px;border-radius:9px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;}
+.pass-err{font-size:12px;color:#c0392b;margin-top:8px;display:none;}
+
+/* ── CONFIRM DIALOG ── */
+.confirm-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4000;align-items:center;justify-content:center;}
+.confirm-ov.open{display:flex;}
+.confirm-box{background:white;border-radius:14px;padding:24px 20px;width:280px;text-align:center;}
+.confirm-box p{font-size:14px;color:var(--charcoal);margin-bottom:18px;line-height:1.5;}
+.confirm-btns{display:flex;gap:9px;}
+.conf-yes{flex:1;background:#c62828;color:white;border:none;padding:11px;border-radius:9px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;}
+.conf-no{flex:1;background:var(--ivory);border:1.5px solid var(--border);color:var(--charcoal);padding:11px;border-radius:9px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:92px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--charcoal);color:white;padding:9px 18px;border-radius:30px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:5000;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="h-top">
+    <button class="admin-btn" onclick="openAdminGate()">⚙️ Admin</button>
+  </div>
+  <div class="h-badge">Smart Ordering</div>
+  <h1>AL-LAZIZ Food Park</h1>
+  <p>Fresh • Flavorful • Authentic</p>
+</header>
+
+<!-- WAIT PILL -->
+<div class="wait-pill">
+  <div class="wait-dot"></div>
+  <span>⏱️ Abhi wait time: <strong>~15-20 min</strong></span>
+</div>
+
+<!-- SETUP -->
+<div class="setup-card">
+  <div class="s-label">Pehle Yahan Se Shuru Karein 👇</div>
+  <select id="order-type" onchange="handleOrderType()">
+    <option value="" disabled selected>🍽️ Table chunein ya Parcel...</option>
+    <option value="Table 1">🪑 Table 1</option>
+    <option value="Table 2">🪑 Table 2</option>
+    <option value="Table 3">🪑 Table 3</option>
+    <option value="Table 4">🪑 Table 4</option>
+    <option value="Table 5">🪑 Table 5</option>
+    <option value="Table 6">🪑 Table 6</option>
+    <option value="Table 7">🪑 Table 7</option>
+    <option value="Table 8">🪑 Table 8</option>
+    <option value="Table 9">🪑 Table 9</option>
+    <option value="Table 10">🪑 Table 10</option>
+    <option value="Table 11">🪑 Table 11</option>
+    <option value="Table 12">🪑 Table 12</option>
+    <option value="Table 13">🪑 Table 13</option>
+    <option value="Table 14">🪑 Table 14</option>
+    <option value="Table 15">🪑 Table 15</option>
+    <option value="Table 16">🪑 Table 16</option>
+    <option value="Parcel">📦 Ghar Ke Liye (Parcel)</option>
+  </select>
+  <div class="v-err" id="ot-err">⚠️ Pehle Table ya Parcel zaroor chunein</div>
+  <div id="parcel-details"><input type="text" id="cust-name" placeholder="👤 Aapka Naam likhein..."></div>
+  <div class="order-tag" id="order-tag"></div>
+</div>
+
+<!-- CATEGORY NAV -->
+<div class="cat-nav-wrap">
+  <div class="cat-nav">
+    <button class="cat-btn active" onclick="switchCat('starters',this)">🔥 Starters</button>
+    <button class="cat-btn" onclick="switchCat('gravy',this)">🍲 Gravy</button>
+    <button class="cat-btn" onclick="switchCat('breads',this)">🫓 Bread/Rice</button>
+    <button class="cat-btn" onclick="switchCat('beverages',this)">🥤 Drinks</button>
+  </div>
+</div>
+
+<!-- MENU -->
+<div class="menu-wrap">
+  <div id="starters" class="category-section active">
+    <div class="cat-header"><h2>Starters</h2>
+      <div class="cat-note">ℹ️ Sabhi Tikka items mein <strong>6 pieces</strong> hote hain.</div></div>
+    <div id="starter-items"></div>
+  </div>
+  <div id="gravy" class="category-section">
+    <div class="cat-header"><h2>Gravy</h2>
+      <div class="cat-note">ℹ️ <strong>Half</strong> = 4 pieces (2 log) | <strong>Full</strong> = 6 pieces (3 log)</div></div>
+    <div id="gravy-items"></div>
+  </div>
+  <div id="breads" class="category-section">
+    <div class="cat-header"><h2>Bread / Rice</h2>
+      <div class="cat-note">ℹ️ Quantity box mein number likhein, phir <strong>Add</strong> dabayein.</div></div>
+    <div id="breads-items"></div>
+  </div>
+  <div id="beverages" class="category-section">
+    <div class="cat-header"><h2>Cold Drinks &amp; Water</h2>
+      <div class="cat-note">ℹ️ + aur − se quantity chunein.</div></div>
+    <div class="bev-grid" id="bev-grid"></div>
+  </div>
+</div>
+
+<!-- FLOATING CART -->
+<div class="cart-float" onclick="openCart()">
+  <div class="cf-left">
+    <span class="cf-badge" id="cart-count">0 Items</span>
+    <span class="cf-text">Cart Dekhen</span>
+  </div>
+  <span class="cf-total" id="cart-total">₹0</span>
+</div>
+
+<!-- CART MODAL -->
+<div class="modal-ov" id="cartModal">
+  <div class="modal-box">
+    <div class="modal-hdr"><h3>🛒 Aapka Order</h3><button class="modal-close" onclick="closeModal('cartModal')">×</button></div>
+    <div class="modal-tag" id="cart-tag"></div>
+    <div id="cart-items"></div>
+    <div class="modal-foot">
+      <div class="total-row"><span class="total-lbl">Kul Rakam</span><span class="total-amt" id="modal-total">₹0</span></div>
+      <button class="checkout-btn" onclick="placeOrder()">💬 WhatsApp Pe Order Bhejein</button>
+    </div>
+  </div>
+</div>
+
+<!-- BILL MODAL -->
+<div class="modal-ov" id="billModal">
+  <div class="bill-box">
+    <div class="modal-hdr"><h3>🧾 Aapka Bill</h3><button class="modal-close" onclick="closeModal('billModal')">×</button></div>
+    <div class="bill-body" id="bill-body"></div>
+    <div class="bill-actions">
+      <button class="bill-wa-btn" onclick="sendBillWA()">💬 Bill WhatsApp Pe</button>
+      <button class="bill-close-btn" onclick="closeModal('billModal')">Bandh</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-ov" id="fbModal">
+  <div class="fb-box">
+    <div class="modal-hdr"><h3>⭐ Feedback Dein</h3><button class="modal-close" onclick="closeModal('fbModal')">×</button></div>
+    <div class="fb-body">
+      <p style="text-align:center;font-size:14px;color:var(--gray);margin-top:4px;">Aapka khana kaisa laga? 😊</p>
+      <div class="fb-stars">
+        <button class="star-btn" onclick="rateStar(1)">⭐</button>
+        <button class="star-btn" onclick="rateStar(2)">⭐</button>
+        <button class="star-btn" onclick="rateStar(3)">⭐</button>
+        <button class="star-btn" onclick="rateStar(4)">⭐</button>
+        <button class="star-btn" onclick="rateStar(5)">⭐</button>
+      </div>
+      <div class="fb-label" id="fb-rating-label">Upar se star chunein 👆</div>
+      <div class="fb-chips" id="fb-chips"></div>
+      <textarea class="fb-textarea" id="fb-text" placeholder="Kuch aur kehna chahte hain? (optional)..."></textarea>
+    </div>
+    <div class="fb-actions">
+      <button class="fb-google-btn" onclick="submitFeedback()">⭐ Google Pe Review Dein</button>
+      <button class="fb-skip-btn" onclick="closeModal('fbModal')">Abhi Nahi</button>
+    </div>
+  </div>
+</div>
+
+<!-- TABLE DETAIL SHEET -->
+<div class="modal-ov" id="tableDetailModal">
+  <div class="t-detail-box">
+    <div class="modal-hdr"><h3 id="td-title">Table Detail</h3><button class="modal-close" onclick="closeModal('tableDetailModal')">×</button></div>
+    <div class="t-detail-body" id="td-body"></div>
+    <div class="t-action-btns" id="td-actions"></div>
+  </div>
+</div>
+
+<!-- ORDER HISTORY MODAL -->
+<div class="modal-ov" id="histModal">
+  <div class="hist-box">
+    <div class="modal-hdr"><h3>📋 Order History</h3><button class="modal-close" onclick="closeModal('histModal')">×</button></div>
+    <div class="hist-body" id="hist-body"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="modal-ov" id="adminModal">
+  <div class="admin-box">
+    <div class="modal-hdr"><h3>⚙️ Admin Panel</h3><button class="modal-close" onclick="closeModal('adminModal')">×</button></div>
+    <div class="admin-body">
+      <div class="admin-tabs">
+        <div class="atab active" onclick="switchAdminTab('tables',this)">🪑 Tables</div>
+        <div class="atab" onclick="switchAdminTab('orders',this)">📬 Orders</div>
+        <div class="atab" onclick="switchAdminTab('sales',this)">📊 Sales</div>
+        <div class="atab" onclick="switchAdminTab('menu',this)">✏️ Menu</div>
+      </div>
+      <div id="admin-tables" class="admin-section active"></div>
+      <div id="admin-orders" class="admin-section"></div>
+      <div id="admin-sales" class="admin-section"></div>
+      <div id="admin-menu" class="admin-section"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PASS GATE -->
+<div class="pass-overlay" id="passOverlay" style="display:none;">
+  <div class="pass-box">
+    <h3>🔒 Admin Access</h3>
+    <p>Password daalo</p>
+    <input type="password" class="pass-input" id="pass-input" placeholder="••••" maxlength="6" onkeyup="if(event.key==='Enter')checkPass()">
+    <button class="pass-ok" onclick="checkPass()">Andar Jaao</button>
+    <div class="pass-err" id="pass-err">❌ Galat password!</div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-ov" id="confirmOv">
+  <div class="confirm-box">
+    <p id="confirm-msg">Aap sure hain?</p>
+    <div class="confirm-btns">
+      <button class="conf-yes" id="conf-yes">Haan</button>
+      <button class="conf-no" onclick="closeConfirm()">Nahi</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const WA_NUMBER      = "917388907339";
+const GOOGLE_REVIEW  = "https://share.google/2AtLD3YJ7i7smbJF9";
+const ADMIN_PASS     = "1234"; // ← apna password yahan badlein
+
+// ════════════════════════════════════════════
+// MENU DATA
+// ════════════════════════════════════════════
+// spice: 0=mild 1=medium 2=spicy 3=very spicy
+// badge: 'best' | 'pop' | 'veg'
+// type: 'single' | 'dual'  (dual = Half/Full)
+// enabled: true/false  (Admin toggle)
+let menuData = {
+  starters:[
+    {id:"s1",name:"Boti Kabab",desc:"Juicy boneless pieces, tawa grilled",price:100,type:"single",spice:1,badge:"best",enabled:true},
+    {id:"s2",name:"Malai Tikka",desc:"Creamy marination, soft & rich",price:100,type:"single",spice:0,badge:"pop",enabled:true},
+    {id:"s3",name:"Afghani Tikka",desc:"White gravy marination, mild & aromatic",price:100,type:"single",spice:0,enabled:true},
+    {id:"s4",name:"AL-Laziz Special Tikka",desc:"Chef's signature ⭐",price:150,type:"single",spice:1,badge:"best",enabled:true},
+    {id:"s5",name:"Chicken Angara",desc:"Smoky charcoal flavour, bold & spicy",price:100,type:"single",spice:3,badge:"pop",enabled:true},
+    {id:"s6",name:"Chicken 65",desc:"Crispy fried, South Indian spice blend",priceFull:100,priceHalf:50,type:"dual",spice:2,enabled:true},
+    {id:"s7",name:"Ginger Chicken",desc:"Zesty ginger marinade, tender pieces",priceFull:100,priceHalf:50,type:"dual",spice:1,enabled:true}
+  ],
+  gravy:[
+    {id:"g1",name:"Butter Chicken",desc:"Creamy tomato gravy, mildly spiced",priceFull:180,priceHalf:120,type:"dual",spice:0,badge:"best",enabled:true},
+    {id:"g2",name:"Chicken Haryali",desc:"Fresh coriander & mint green gravy",priceFull:180,priceHalf:120,type:"dual",spice:1,badge:"pop",enabled:true},
+    {id:"g3",name:"Chicken Masala",desc:"Classic Mughal masala, rich & bold",priceFull:180,priceHalf:120,type:"dual",spice:2,enabled:true},
+    {id:"g4",name:"Chicken Kastoori",desc:"Methi-infused, fragrant & smoky",priceFull:180,priceHalf:120,type:"dual",spice:1,enabled:true},
+    {id:"g5",name:"Chicken Achari",desc:"Tangy pickle spices, sharp flavour",priceFull:180,priceHalf:120,type:"dual",spice:2,enabled:true},
+    {id:"g6",name:"Chicken Chatpata",desc:"Spicy & tangy masala blast",priceFull:180,priceHalf:120,type:"dual",spice:3,enabled:true},
+    {id:"g7",name:"Chicken Kolhapuri",desc:"Fiery Maharashtrian spice blend",priceFull:180,priceHalf:120,type:"dual",spice:3,badge:"pop",enabled:true},
+    {id:"g8",name:"Chicken Afghani",desc:"Mild & creamy, loaded with cashew",priceFull:180,priceHalf:120,type:"dual",spice:0,enabled:true},
+    {id:"g9",name:"Chicken Mughlai",desc:"Royal Mughal style, rich & aromatic",priceFull:180,priceHalf:120,type:"dual",spice:1,enabled:true},
+    {id:"g10",name:"Chicken Kali Mirch",desc:"Bold black pepper, sharp & warming",priceFull:180,priceHalf:120,type:"dual",spice:2,enabled:true},
+    {id:"g11",name:"Chicken Punjabi",desc:"Dhaba-style thick masala gravy",priceFull:180,priceHalf:120,type:"dual",spice:2,badge:"pop",enabled:true},
+    {id:"g12",name:"Chicken Peshawari",desc:"NWFP style, garlic & herb marination",priceFull:180,priceHalf:120,type:"dual",spice:1,enabled:true},
+    {id:"g13",name:"Chicken Kadhai",desc:"Wok-tossed, crunchy peppers & onion",priceFull:180,priceHalf:120,type:"dual",spice:2,enabled:true},
+    {id:"g14",name:"AL-Laziz Spl. Chicken",desc:"Chef's secret recipe ⭐",priceFull:180,priceHalf:120,type:"dual",spice:1,badge:"best",enabled:true},
+    {id:"g15",name:"Shahi Paneer",desc:"Creamy royal gravy, cottage cheese",priceFull:180,priceHalf:120,type:"dual",spice:0,badge:"veg",enabled:true},
+    {id:"g16",name:"Kaju Paneer",desc:"Cashew-rich gravy, mildly sweet",priceFull:180,priceHalf:120,type:"dual",spice:0,badge:"veg",enabled:true},
+    {id:"g17",name:"Dal Fry",desc:"Tarka dal, pure comfort food",price:70,type:"single",spice:0,badge:"veg",enabled:true}
+  ],
+  breads:[
+    {id:"b1",name:"Roomali Roti",desc:"Paper-thin, fresh tawa roti",price:8,type:"single",spice:0,badge:"veg",enabled:true},
+    {id:"b2",name:"Butter Naan",desc:"Soft tandoor naan with butter",price:12,type:"single",spice:0,badge:"veg",enabled:true},
+    {id:"b3",name:"Plain Naan",desc:"Classic tandoor naan, light & fluffy",price:10,type:"single",spice:0,badge:"veg",enabled:true},
+    {id:"b4",name:"Plain Rice",desc:"Steamed basmati rice",priceFull:30,priceHalf:20,type:"dual",spice:0,badge:"veg",enabled:true}
+  ]
+};
+
+const beverages=[
+  {id:"v1",name:"Water Bottle",size:"1 Litre",icon:"💧",price:20},
+  {id:"v2",name:"Cold Drink",size:"250 ml (Chota)",icon:"🥤",price:20},
+  {id:"v3",name:"Cold Drink",size:"750 ml (Bada)",icon:"🍶",price:40},
+  {id:"v4",name:"Cold Drink",size:"2 Litre (Family)",icon:"🫙",price:90}
+];
+
+// ════════════════════════════════════════════
+// TABLE STATE  (16 tables)
+// status: 'free' | 'occupied' | 'bill_pending'
+// payment: '' | 'cash' | 'online'
+// ════════════════════════════════════════════
+let tables = {};
+for(let i=1;i<=16;i++){
+  tables[`Table ${i}`]={status:'free',orders:[],total:0,payment:'',time:null};
+}
+
+// ════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════
+const spiceLabels=["Mild 😊","Medium 🌶️","Spicy 🌶️🌶️","Very Spicy 🌶️🌶️🌶️"];
+const fbChipOptions=["Khana bahut accha tha 😍","Service achhi thi 👍","Saaf safai thi ✨","Daam sahi hain 💰","Jaldi milaa 🚀","Aayenge dobara 🔄"];
+const starLabels=["","Bahut bura 😞","Theek tha 😐","Accha tha 🙂","Bahut accha 😊","Lajawab! 🤩"];
+let cart={}, bevQty={}, fbRating=0, fbSelected=new Set();
+let adminOrders=[], orderHistory=[], currentOrderSnap=null;
+let adminUnlocked=false;
+let activeMenuEditorCat='starters', activeItemType='single';
+let newItemId=1000;
+const orderSerial="ORD"+Math.floor(1000+Math.random()*9000);
+beverages.forEach(b=>bevQty[b.id]=0);
+
+// ════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════
+function spiceHTML(level){
+  if(level===undefined||level===null)return'';
+  let d=''; for(let i=0;i<3;i++) d+=`<div class="spice-dot ${i<level?'on':'off'}"></div>`;
+  return `<div class="spice">${d}<span class="spice-label">${spiceLabels[level]||''}</span></div>`;
+}
+function badgeHTML(badge){
+  if(!badge)return'';
+  if(badge==='best')return'<span class="badge badge-best">⭐ Bestseller</span>';
+  if(badge==='pop') return'<span class="badge badge-pop">🔥 Popular</span>';
+  if(badge==='veg') return'<span class="badge badge-veg">🥦 Veg</span>';
+  return'';
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+document.querySelectorAll('.modal-ov').forEach(ov=>{
+  ov.addEventListener('click',function(e){if(e.target===this)closeModal(this.id);});
+});
+let confirmCallback=null;
+function showConfirm(msg,cb){
+  document.getElementById('confirm-msg').textContent=msg;
+  confirmCallback=cb;
+  document.getElementById('confirmOv').classList.add('open');
+}
+function closeConfirm(){document.getElementById('confirmOv').classList.remove('open');confirmCallback=null;}
+document.getElementById('conf-yes').onclick=function(){closeConfirm();if(confirmCallback)confirmCallback();};
+
+// ════════════════════════════════════════════
+// RENDER MENU
+// ════════════════════════════════════════════
+function renderMenu(cat,cid){
+  const c=document.getElementById(cid); let h='';
+  menuData[cat].forEach((item,i)=>{
+    if(!item.enabled){
+      h+=`<div class="item-card out-of-stock has-badge" style="animation-delay:${i*35}ms">
+        ${item.badge?`<div class="badge-wrap">${badgeHTML(item.badge)}</div>`:''}
+        <div class="item-dot"></div>
+        <div class="item-body"><div class="item-name">${item.name}</div></div>
+      </div>`; return;
+    }
+    const hb=!!item.badge;
+    h+=`<div class="item-card${hb?' has-badge':''}" style="animation-delay:${i*35}ms">
+      ${hb?`<div class="badge-wrap">${badgeHTML(item.badge)}</div>`:''}
+      <div class="item-dot"></div>
+      <div class="item-body">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">${spiceHTML(item.spice)}</div>
+        <div class="item-desc">${item.desc}</div>`;
+    if(item.type==='single'){
+      h+=`<div class="item-price"><span class="ptag">₹${item.price}</span></div>
+        </div>
+        <div class="item-controls">
+          <div class="add-row">
+            <input type="number" id="qty-${item.id}" class="qty-inp" value="1" min="1" max="99">
+            <button class="add-btn" id="addbtn-${item.id}" onclick="addSingle('${item.id}','${item.name}',${item.price})">Add</button>
+          </div>
+        </div>`;
+    }else{
+      h+=`<div class="item-price"><span class="ptag">₹${item.priceHalf} Half</span><span class="ptag">₹${item.priceFull} Full</span></div>
+        </div>
+        <div class="item-controls">
+          <select id="sel-${item.id}" class="variant-sel">
+            <option value="Half_${item.priceHalf}">Half – ₹${item.priceHalf}</option>
+            <option value="Full_${item.priceFull}">Full – ₹${item.priceFull}</option>
+          </select>
+          <div class="add-row" style="margin-top:5px">
+            <input type="number" id="qty-${item.id}" class="qty-inp" value="1" min="1" max="99">
+            <button class="add-btn" id="addbtn-${item.id}" onclick="addDual('${item.id}','${item.name}')">Add</button>
+          </div>
+        </div>`;
+    }
+    h+=`</div>`;
+  });
+  c.innerHTML=h;
+}
+function renderBeverages(){
+  const g=document.getElementById('bev-grid'); let h='';
+  beverages.forEach((b,i)=>{
+    h+=`<div class="bev-card" style="animation-delay:${i*60}ms" id="bev-card-${b.id}">
+      <div class="bev-added-badge" id="bev-badge-${b.id}">✓ Cart Mein</div>
+      <div class="bev-icon">${b.icon}</div>
+      <div class="bev-name">${b.name}</div>
+      <div class="bev-size">${b.size}</div>
+      <div class="bev-price">₹${b.price}</div>
+      <div class="bev-stepper">
+        <button class="bev-btn" onclick="changeBev('${b.id}',-1)">−</button>
+        <span class="bev-qty" id="bq-${b.id}">0</span>
+        <button class="bev-btn" onclick="changeBev('${b.id}',1)">+</button>
+      </div>
+    </div>`;
+  });
+  g.innerHTML=h;
+}
+function reRenderAll(){
+  renderMenu('starters','starter-items');
+  renderMenu('gravy','gravy-items');
+  renderMenu('breads','breads-items');
+  renderBeverages();
+}
+reRenderAll();
+
+// ════════════════════════════════════════════
+// ORDER TYPE
+// ════════════════════════════════════════════
+function handleOrderType(){
+  const v=document.getElementById('order-type').value;
+  const tag=document.getElementById('order-tag');
+  document.getElementById('ot-err').classList.remove('show');
+  document.getElementById('order-type').classList.remove('err-border');
+  document.getElementById('parcel-details').style.display=v==='Parcel'?'block':'none';
+  tag.textContent=v==='Parcel'?'📦 Parcel / Takeaway select kiya':`✅ ${v} select hua hai`;
+  tag.classList.add('show');
+}
+function switchCat(catId,btn){
+  document.querySelectorAll('.category-section').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.cat-btn').forEach(e=>e.classList.remove('active'));
+  document.getElementById(catId).classList.add('active');
+  btn.classList.add('active');
+  document.querySelectorAll(`#${catId} .item-card,#${catId} .bev-card`).forEach((c,i)=>{
+    c.style.animation='none'; c.offsetHeight;
+    c.style.animation=`fadeUp .3s ease ${i*35}ms both`;
+  });
+}
+
+// ════════════════════════════════════════════
+// CART
+// ════════════════════════════════════════════
+function addSingle(id,name,price){
+  const qEl=document.getElementById(`qty-${id}`);
+  const qty=parseInt(qEl.value); if(isNaN(qty)||qty<=0)return;
+  const key=id+'_single';
+  if(cart[key]) cart[key].qty+=qty; else cart[key]={name,price,qty,variant:''};
+  qEl.value=1; flashBtn(id); updateCartUI();
+  showToast(`✓ ${qty} × ${name} add hua!`);
+}
+function addDual(id,name){
+  const sv=document.getElementById(`sel-${id}`).value;
+  const [vs,ps]=sv.split('_'); const price=parseInt(ps);
+  const qty=parseInt(document.getElementById(`qty-${id}`).value);
+  if(isNaN(qty)||qty<=0)return;
+  const key=id+'_'+vs;
+  if(cart[key]) cart[key].qty+=qty; else cart[key]={name,price,qty,variant:vs};
+  document.getElementById(`qty-${id}`).value=1; flashBtn(id); updateCartUI();
+  showToast(`✓ ${qty} × ${name} (${vs}) add hua!`);
+}
+function flashBtn(id){
+  const btn=document.getElementById(`addbtn-${id}`); if(!btn)return;
+  btn.textContent='✓ Added'; btn.classList.add('added');
+  setTimeout(()=>{btn.textContent='Add';btn.classList.remove('added');},1200);
+}
+function changeBev(id,delta){
+  bevQty[id]=Math.max(0,(bevQty[id]||0)+delta);
+  document.getElementById(`bq-${id}`).textContent=bevQty[id];
+  const bev=beverages.find(b=>b.id===id); const key=id+'_bev';
+  const badge=document.getElementById(`bev-badge-${id}`);
+  if(bevQty[id]>0){
+    cart[key]={name:bev.name+' ('+bev.size+')',price:bev.price,qty:bevQty[id],variant:''};
+    badge.classList.add('show'); if(delta>0)showToast(`✓ ${bev.name} (${bev.size}) add hua!`);
+  }else{ delete cart[key]; badge.classList.remove('show'); }
+  updateCartUI();
+}
+function changeQty(key,delta){
+  if(!cart[key])return; cart[key].qty+=delta;
+  if(cart[key].qty<=0){
+    const bid=key.replace('_bev','');
+    if(beverages.find(b=>b.id===bid)){
+      bevQty[bid]=0;
+      const el=document.getElementById(`bq-${bid}`); if(el)el.textContent=0;
+      const badge=document.getElementById(`bev-badge-${bid}`); if(badge)badge.classList.remove('show');
+    }
+    delete cart[key];
+  }
+  updateCartUI();
+}
+function updateCartUI(){
+  let ti=0,ta=0; const container=document.getElementById('cart-items');
+  const ot=document.getElementById('order-type').value;
+  const tag=document.getElementById('cart-tag');
+  const nm=document.getElementById('cust-name').value.trim();
+  tag.textContent=ot==='Parcel'?`📦 Parcel${nm?' – '+nm:''}`:ot?`🪑 ${ot}`:'⚠️ Table ya Parcel select nahi hua';
+  const keys=Object.keys(cart);
+  if(!keys.length){
+    container.innerHTML=`<div class="cart-empty"><div class="e-icon">🛒</div><p>Cart khali hai.<br>Menu se items add karein.</p></div>`;
+  }else{
+    let h='';
+    keys.forEach(key=>{
+      const item=cart[key]; ti+=item.qty; const lt=item.qty*item.price; ta+=lt;
+      h+=`<div class="cart-item">
+        <div class="ci-info">
+          <div class="ci-name">${item.name}</div>
+          ${item.variant?`<div class="ci-var">${item.variant}</div>`:''}
+          <div class="ci-price">₹${item.price} × ${item.qty} = ₹${lt}</div>
+        </div>
+        <div class="ci-ctrl">
+          <button class="ci-btn" onclick="changeQty('${key}',-1)">−</button>
+          <span class="ci-qty">${item.qty}</span>
+          <button class="ci-btn" onclick="changeQty('${key}',1)">+</button>
+        </div>
+      </div>`;
+    });
+    container.innerHTML=h;
+  }
+  document.getElementById('cart-count').textContent=ti>0?`${ti} Item${ti>1?'s':''}`:'0 Items';
+  document.getElementById('cart-total').textContent=`₹${ta}`;
+  document.getElementById('modal-total').textContent=`₹${ta}`;
+}
+function openCart(){updateCartUI();openModal('cartModal');}
+
+// ════════════════════════════════════════════
+// PLACE ORDER
+// ════════════════════════════════════════════
+function placeOrder(){
+  const ot=document.getElementById('order-type').value;
+  if(!ot){
+    closeModal('cartModal');
+    document.getElementById('order-type').classList.add('err-border');
+    document.getElementById('ot-err').classList.add('show');
+    document.getElementById('order-type').scrollIntoView({behavior:'smooth',block:'center'});
+    showToast('⚠️ Pehle Table ya Parcel chunein!'); return;
+  }
+  if(!Object.keys(cart).length){showToast('⚠️ Cart mein kuch nahi!');return;}
+  const now=new Date();
+  const time=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const date=now.toLocaleDateString('en-IN');
+  let total=0; const snapItems=[];
+  let msg=`🍽 *AL-LAZIZ Food Park*\n📋 Order: *${orderSerial}*\n`;
+  const nm=document.getElementById('cust-name').value.trim();
+  if(ot==='Parcel'){msg+=`📦 Parcel${nm?' – *'+nm+'*':''}\n`;}
+  else{msg+=`🪑 *${ot}*\n`;}
+  msg+=`🕐 ${time} | ${date}\n\n*Items:*\n`;
+  let i=1;
+  for(const key in cart){
+    const item=cart[key]; const lt=item.qty*item.price; total+=lt;
+    msg+=`${i}. ${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty} = ₹${lt}\n`;
+    snapItems.push({...item}); i++;
+  }
+  msg+=`\n💰 *Total: ₹${total}*`;
+  // Update table status
+  if(ot!=='Parcel'){
+    if(!tables[ot])tables[ot]={status:'free',orders:[],total:0,payment:'',time:null};
+    tables[ot].status='occupied';
+    tables[ot].orders=[...snapItems];
+    tables[ot].total=total;
+    tables[ot].time=time;
+    tables[ot].payment='';
+  }
+  const orderObj={id:orderSerial,table:ot,time,date,items:snapItems,total,status:'pending'};
+  adminOrders.unshift(orderObj);
+  currentOrderSnap={id:orderSerial,table:ot,time,date,items:snapItems,total};
+  orderHistory.unshift(currentOrderSnap);
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+  closeModal('cartModal');
+  showBill(ot,total,date,time,snapItems,orderSerial);
+}
+
+// ════════════════════════════════════════════
+// BILL
+// ════════════════════════════════════════════
+function showBill(ot,total,date,time,items,serial){
+  let h=`<div class="bill-restaurant-name">
+    <h2>AL-LAZIZ Food Park</h2>
+    <p>Order: ${serial} | ${time}, ${date}</p>
+    <p style="margin-top:4px;font-weight:600;color:var(--maroon)">${ot==='Parcel'?'📦 Parcel':'🪑 '+ot}</p>
+  </div>`;
+  items.forEach(item=>{
+    const lt=item.qty*item.price;
+    h+=`<div class="bill-row"><span>${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty}</span><span>₹${lt}</span></div>`;
+  });
+  h+=`<hr class="bill-divider">
+    <div class="bill-total-row"><span>Total</span><span>₹${total}</span></div>
+    <p class="bill-meta">Shukriya! WhatsApp pe order bheja ja chuka hai 💚<br>Dobara aayein! 🙏</p>`;
+  document.getElementById('bill-body').innerHTML=h;
+  openModal('billModal');
+  setTimeout(()=>{closeModal('billModal');openFeedback();},9000);
+}
+function sendBillWA(){
+  if(!currentOrderSnap){showToast('Pehle order kijiye');return;}
+  const s=currentOrderSnap;
+  let msg=`🧾 *AL-LAZIZ – Bill*\nOrder: *${s.id}* | ${s.time}, ${s.date}\n${s.table==='Parcel'?'📦 Parcel':'🪑 '+s.table}\n\n`;
+  s.items.forEach((item,i)=>{msg+=`${i+1}. ${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty} = ₹${item.qty*item.price}\n`;});
+  msg+=`\n💰 *Total: ₹${s.total}*\n\nAapke saath khana share karna achha laga! 🙏`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// ════════════════════════════════════════════
+// FEEDBACK
+// ════════════════════════════════════════════
+function openFeedback(){
+  openModal('fbModal');
+  document.getElementById('fb-chips').innerHTML=fbChipOptions.map(o=>
+    `<button class="chip${fbSelected.has(o)?' sel':''}" onclick="toggleChip(this,'${o}')">${o}</button>`).join('');
+}
+function toggleChip(el,val){
+  if(fbSelected.has(val)){fbSelected.delete(val);el.classList.remove('sel');}
+  else{fbSelected.add(val);el.classList.add('sel');}
+}
+function rateStar(n){
+  fbRating=n;
+  document.querySelectorAll('.star-btn').forEach((btn,i)=>btn.classList.toggle('active',i<n));
+  document.getElementById('fb-rating-label').textContent=starLabels[n];
+}
+function submitFeedback(){
+  if(fbRating===0){showToast('⭐ Pehle star rating dein');return;}
+  const txt=document.getElementById('fb-text').value.trim();
+  const chips=Array.from(fbSelected).join(', ');
+  const msg=`⭐ *AL-LAZIZ Feedback*\nOrder: ${orderSerial}\nRating: ${'⭐'.repeat(fbRating)} (${fbRating}/5)\n${chips?'Highlights: '+chips+'\n':''}${txt?'Comment: '+txt+'\n':''}\n— ${new Date().toLocaleString('en-IN')}`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+  setTimeout(()=>{
+    if(fbRating>=4){closeModal('fbModal');showToast('🌟 Google pe review dein – khul raha hai!');setTimeout(()=>window.open(GOOGLE_REVIEW,'_blank'),1800);}
+    else{closeModal('fbModal');showToast('Shukriya! Aapka feedback mil gaya 🙏');}
+  },400);
+}
+
+// ════════════════════════════════════════════
+// ADMIN GATE
+// ════════════════════════════════════════════
+function openAdminGate(){
+  if(adminUnlocked){openAdmin();return;}
+  document.getElementById('passOverlay').style.display='flex';
+  setTimeout(()=>document.getElementById('pass-input').focus(),100);
+}
+function checkPass(){
+  const v=document.getElementById('pass-input').value;
+  if(v===ADMIN_PASS){
+    adminUnlocked=true;
+    document.getElementById('passOverlay').style.display='none';
+    document.getElementById('pass-input').value='';
+    openAdmin();
+  }else{
+    document.getElementById('pass-err').style.display='block';
+    document.getElementById('pass-input').value='';
+    setTimeout(()=>document.getElementById('pass-err').style.display='none',2000);
+  }
+}
+function openAdmin(){renderAdminTables();renderAdminOrders();renderAdminSales();renderMenuEditor();openModal('adminModal');}
+function switchAdminTab(tab,btn){
+  document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('admin-'+tab).classList.add('active');
+  if(tab==='tables')renderAdminTables();
+  if(tab==='sales')renderAdminSales();
+}
+
+// ════════════════════════════════════════════
+// TABLE MANAGER (Admin)
+// ════════════════════════════════════════════
+function renderAdminTables(){
+  const el=document.getElementById('admin-tables');
+  const statusIcon={free:'🟢',occupied:'🔴',bill_pending:'🟡'};
+  const statusText={free:'Khaali',occupied:'Occupied',bill_pending:'Bill Pending'};
+  let h=`<div class="table-legend">
+    <div class="legend-item"><div class="leg-dot leg-free"></div> Khaali</div>
+    <div class="legend-item"><div class="leg-dot leg-occ"></div> Occupied</div>
+    <div class="legend-item"><div class="leg-dot leg-bill"></div> Bill Pending</div>
+  </div>
+  <div class="table-grid">`;
+  for(let i=1;i<=16;i++){
+    const key=`Table ${i}`;
+    const t=tables[key];
+    h+=`<div class="t-card ${t.status}" onclick="openTableDetail('${key}')">
+      <div class="t-icon">${t.status==='free'?'🪑':t.status==='occupied'?'🍽️':'💳'}</div>
+      <div class="t-num">Table ${i}</div>
+      <div class="t-status ${t.status}">${statusText[t.status]}</div>
+      ${t.total>0?`<div class="t-amount">₹${t.total}</div>`:''}
+    </div>`;
+  }
+  h+=`</div>`;
+  // Parcel orders row
+  const parcelOrders=adminOrders.filter(o=>o.table==='Parcel');
+  if(parcelOrders.length){
+    h+=`<div class="detail-section-title">📦 Parcel Orders (${parcelOrders.length})</div>`;
+    parcelOrders.forEach(o=>{
+      h+=`<div class="parcel-row" style="margin-bottom:8px">
+        <div class="parcel-row-left">
+          <strong>${o.id}</strong>
+          <span>${o.time} – ₹${o.total}</span>
+        </div>
+        <span class="payment-status-badge ${o.payment?'psb-'+o.payment:'psb-pending'}">${o.payment?o.payment==='cash'?'💵 Cash':'📱 Online':'⏳ Pending'}</span>
+      </div>`;
+    });
+  }
+  el.innerHTML=h;
+}
+
+function openTableDetail(tableKey){
+  const t=tables[tableKey];
+  document.getElementById('td-title').textContent=`🪑 ${tableKey}`;
+  const statusLabel={free:'🟢 Khaali',occupied:'🔴 Occupied',bill_pending:'🟡 Bill Pending'};
+  let body=`<div class="t-detail-header">
+    <div class="t-detail-icon">${t.status==='free'?'🪑':t.status==='occupied'?'🍽️':'💳'}</div>
+    <div>
+      <div class="t-detail-title">${tableKey}</div>
+      <div class="t-detail-sub">${statusLabel[t.status]}${t.time?' · Since '+t.time:''}</div>
+    </div>
+  </div>`;
+  if(t.orders.length){
+    body+=`<div class="detail-section-title">Ordered Items</div>`;
+    t.orders.forEach(item=>{
+      const lt=item.qty*item.price;
+      body+=`<div class="t-order-row"><span>${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty}</span><span>₹${lt}</span></div>`;
+    });
+    body+=`<div class="t-total-row"><span>Total</span><span>₹${t.total}</span></div>`;
+    body+=`<div class="detail-section-title">Payment Status</div>`;
+    body+=`<div class="pay-btns">
+      <button class="pay-btn pay-cash${t.payment==='cash'?' selected':''}" onclick="setPayment('${tableKey}','cash')">💵 Cash</button>
+      <button class="pay-btn pay-online${t.payment==='online'?' selected':''}" onclick="setPayment('${tableKey}','online')">📱 Online / UPI</button>
+    </div>`;
+    if(t.payment){
+      body+=`<div class="payment-status-badge ${t.payment==='cash'?'psb-cash':'psb-online'}" style="margin-top:10px">
+        ✅ ${t.payment==='cash'?'Cash Payment Hua':'Online / UPI Payment Hua'}
+      </div>`;
+    }else{
+      body+=`<div class="payment-status-badge psb-pending" style="margin-top:10px">⏳ Payment Abhi Pending Hai</div>`;
+    }
+  }else{
+    body+=`<div class="cart-empty" style="padding:20px 0"><div class="e-icon">🪑</div><p>Is table par abhi koi order nahi.</p></div>`;
+  }
+  document.getElementById('td-body').innerHTML=body;
+  let acts=`<div class="t-act-row">`;
+  if(t.status!=='free'){
+    acts+=`<button class="t-act-btn tab-print-btn" onclick="printTableBill('${tableKey}')">🧾 Bill Print</button>`;
+    acts+=`<button class="t-act-btn tab-wa-btn" onclick="sendTableBillWA('${tableKey}')">💬 WA Pe Bhejein</button>`;
+  }
+  acts+=`</div>`;
+  if(t.status!=='free'){
+    acts+=`<div class="t-act-row" style="margin-top:8px">
+      <button class="t-act-btn tab-free-btn" onclick="freeTable('${tableKey}')">✅ Table Khaali Karein</button>
+    </div>`;
+  }
+  document.getElementById('td-actions').innerHTML=acts;
+  closeModal('adminModal');
+  openModal('tableDetailModal');
+}
+
+function setPayment(tableKey,method){
+  tables[tableKey].payment=method;
+  tables[tableKey].status='bill_pending';
+  showToast(`✅ ${tableKey} – ${method==='cash'?'Cash':'Online'} payment mark hua!`);
+  openTableDetail(tableKey);
+}
+
+function freeTable(tableKey){
+  showConfirm(`${tableKey} khaali kar dein? Sab data reset ho jaayega.`,()=>{
+    tables[tableKey]={status:'free',orders:[],total:0,payment:'',time:null};
+    closeModal('tableDetailModal');
+    openAdmin();
+    switchAdminTab('tables',document.querySelector('.atab'));
+    showToast(`✅ ${tableKey} khaali kar diya!`);
+  });
+}
+
+function sendTableBillWA(tableKey){
+  const t=tables[tableKey];
+  if(!t.orders.length){showToast('Is table ka koi order nahi');return;}
+  let msg=`🧾 *AL-LAZIZ – Bill*\n🪑 *${tableKey}* | ${t.time||''}\n\n`;
+  t.orders.forEach((item,i)=>{msg+=`${i+1}. ${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty} = ₹${item.qty*item.price}\n`;});
+  msg+=`\n💰 *Total: ₹${t.total}*\n${t.payment?'✅ Payment: '+t.payment:'⏳ Payment Pending'}\n\nShukriya! 🙏`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function printTableBill(tableKey){
+  const t=tables[tableKey];
+  if(!t.orders.length){showToast('Is table ka koi order nahi');return;}
+  const now=new Date();
+  let html=`<html><head><title>Bill – ${tableKey}</title>
+  <style>body{font-family:monospace;padding:20px;max-width:320px;margin:auto;}
+  h2{text-align:center;margin-bottom:4px;}
+  p{text-align:center;font-size:12px;margin:2px 0;}
+  hr{border:none;border-top:1px dashed #999;margin:10px 0;}
+  .row{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;}
+  .total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:6px 0;}
+  .footer{text-align:center;font-size:11px;margin-top:12px;}
+  </style></head><body>
+  <h2>AL-LAZIZ Food Park</h2>
+  <p>${tableKey}</p>
+  <p>${now.toLocaleString('en-IN')}</p><hr>`;
+  t.orders.forEach(item=>{
+    html+=`<div class="row"><span>${item.name}${item.variant?' ('+item.variant+')':''} ×${item.qty}</span><span>₹${item.qty*item.price}</span></div>`;
+  });
+  html+=`<hr><div class="total"><span>TOTAL</span><span>₹${t.total}</span></div>
+  <hr><div class="footer">${t.payment?'Payment: '+t.payment.toUpperCase():'Payment: PENDING'}<br>Shukriya! Dobara aayein 🙏</div>
+  </body></html>`;
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
+// ════════════════════════════════════════════
+// ADMIN ORDERS
+// ════════════════════════════════════════════
+function renderAdminOrders(){
+  const el=document.getElementById('admin-orders');
+  if(!adminOrders.length){el.innerHTML=`<div class="no-orders">📭 Abhi tak koi order nahi.</div>`;return;}
+  let h=`<div class="live-badge"><div class="live-dot"></div>LIVE – ${adminOrders.length} Order${adminOrders.length>1?'s':''}</div>`;
+  adminOrders.forEach((o,idx)=>{
+    h+=`<div class="order-card">
+      <div class="oc-head"><span class="oc-id">${o.id}</span><span class="oc-time">${o.time}</span></div>
+      <div class="oc-table">${o.table==='Parcel'?'📦 Parcel':'🪑 '+o.table}</div>
+      <div class="oc-items">`;
+    o.items.forEach(item=>{h+=`${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty}<br>`;});
+    h+=`</div><div class="oc-total">₹${o.total}</div>
+      <div class="oc-status">
+        <button class="status-btn s-pending${o.status==='pending'?' s-btn-active':''}" onclick="setOrderStatus(${idx},'pending')">⏳ Pending</button>
+        <button class="status-btn s-cooking${o.status==='cooking'?' s-btn-active':''}" onclick="setOrderStatus(${idx},'cooking')">👨‍🍳 Cooking</button>
+        <button class="status-btn s-done${o.status==='done'?' s-btn-active':''}" onclick="setOrderStatus(${idx},'done')">✅ Ready</button>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+function setOrderStatus(idx,status){adminOrders[idx].status=status;renderAdminOrders();showToast(`Order ${adminOrders[idx].id} → ${status}`);}
+
+// ════════════════════════════════════════════
+// SALES SUMMARY
+// ════════════════════════════════════════════
+function renderAdminSales(){
+  const el=document.getElementById('admin-sales');
+  if(!adminOrders.length){el.innerHTML=`<div class="no-orders">📊 Koi sales data nahi.</div>`;return;}
+  const rev=adminOrders.reduce((s,o)=>s+o.total,0);
+  const cnt=adminOrders.length;
+  const avg=Math.round(rev/cnt);
+  const done=adminOrders.filter(o=>o.status==='done').length;
+  const itemMap={};
+  adminOrders.forEach(o=>o.items.forEach(item=>{
+    const k=item.name+(item.variant?' ('+item.variant+')':'');
+    if(!itemMap[k])itemMap[k]={count:0,rev:0};
+    itemMap[k].count+=item.qty; itemMap[k].rev+=item.qty*item.price;
+  }));
+  const top=Object.entries(itemMap).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
+  let h=`<div class="sales-grid">
+    <div class="sales-card"><div class="sc-icon">💰</div><div class="sc-val">₹${rev}</div><div class="sc-lbl">Total Revenue</div></div>
+    <div class="sales-card"><div class="sc-icon">📬</div><div class="sc-val">${cnt}</div><div class="sc-lbl">Total Orders</div></div>
+    <div class="sales-card"><div class="sc-icon">🧾</div><div class="sc-val">₹${avg}</div><div class="sc-lbl">Avg Order</div></div>
+    <div class="sales-card"><div class="sc-icon">✅</div><div class="sc-val">${done}</div><div class="sc-lbl">Completed</div></div>
+  </div>
+  <div class="top-items-title">🏆 Top Selling Items</div>`;
+  top.forEach(([name,data],i)=>{
+    h+=`<div class="top-item-row">
+      <div class="ti-rank">${i+1}</div>
+      <div class="ti-name">${name}</div>
+      <div class="ti-count">${data.count}x</div>
+      <div class="ti-rev">₹${data.rev}</div>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+
+// ════════════════════════════════════════════
+// MENU EDITOR
+// ════════════════════════════════════════════
+function renderMenuEditor(){
+  const el=document.getElementById('admin-menu');
+  const cats=['starters','gravy','breads'];
+  const catLabels={starters:'🔥 Starters',gravy:'🍲 Gravy',breads:'🫓 Bread/Rice'};
+  let h=`<div class="me-cat-tabs">`;
+  cats.forEach(c=>{h+=`<button class="me-tab${c===activeMenuEditorCat?' active':''}" onclick="switchMenuEditorCat('${c}',this)">${catLabels[c]}</button>`;});
+  h+=`</div><div id="me-item-list">`;
+  menuData[activeMenuEditorCat].forEach((item,idx)=>{
+    const priceStr=item.type==='single'?`₹${item.price}`:`₹${item.priceHalf} Half / ₹${item.priceFull} Full`;
+    h+=`<div class="me-item-row">
+      <div class="me-info">
+        <div class="me-name">${item.name}</div>
+        <div class="me-price">${priceStr}</div>
+      </div>
+      <label class="me-toggle" title="${item.enabled?'Available':'Out of Stock'}">
+        <input type="checkbox" ${item.enabled?'checked':''} onchange="toggleItem('${activeMenuEditorCat}',${idx},this.checked)">
+        <span class="me-slider"></span>
+      </label>
+      <button class="me-del-btn" onclick="deleteItem('${activeMenuEditorCat}',${idx},'${item.name}')">🗑</button>
+    </div>`;
+  });
+  h+=`</div>
+  <div class="add-item-form">
+    <h4>➕ Naya Item Add Karein</h4>
+    <div class="form-row">
+      <input type="text" class="form-inp" id="new-name" placeholder="Dish ka naam *">
+    </div>
+    <div class="form-row">
+      <input type="text" class="form-inp" id="new-desc" placeholder="Short description">
+    </div>
+    <div class="form-type-row">
+      <div class="type-opt${activeItemType==='single'?' sel':''}" onclick="setItemType('single',this)">Single Price</div>
+      <div class="type-opt${activeItemType==='dual'?' sel':''}" onclick="setItemType('dual',this)">Half / Full</div>
+    </div>
+    <div class="form-row" id="single-price-row" style="${activeItemType==='dual'?'display:none':''}">
+      <input type="number" class="form-inp" id="new-price" placeholder="Price (₹) *" min="1">
+    </div>
+    <div class="half-full-row${activeItemType==='dual'?' show':''}" id="dual-price-row">
+      <input type="number" class="form-inp" id="new-half" placeholder="Half ₹" min="1">
+      <input type="number" class="form-inp" id="new-full" placeholder="Full ₹" min="1">
+    </div>
+    <div class="form-row">
+      <select class="form-sel" id="new-cat">
+        <option value="starters">🔥 Starters</option>
+        <option value="gravy">🍲 Gravy</option>
+        <option value="breads">🫓 Bread/Rice</option>
+      </select>
+      <select class="form-sel" id="new-spice">
+        <option value="0">Mild 😊</option>
+        <option value="1">Medium 🌶️</option>
+        <option value="2">Spicy 🌶️🌶️</option>
+        <option value="3">Very Spicy 🌶️🌶️🌶️</option>
+      </select>
+    </div>
+    <button class="form-add-btn" onclick="addNewItem()">✅ Item Add Karein</button>
+  </div>`;
+  el.innerHTML=h;
+  // Set category select
+  const catSel=el.querySelector('#new-cat');
+  if(catSel) catSel.value=activeMenuEditorCat;
+}
+
+function switchMenuEditorCat(cat,btn){
+  activeMenuEditorCat=cat;
+  renderMenuEditor();
+}
+function setItemType(type,el){
+  activeItemType=type;
+  document.querySelectorAll('.type-opt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('single-price-row').style.display=type==='dual'?'none':'flex';
+  const dr=document.getElementById('dual-price-row');
+  if(type==='dual') dr.classList.add('show'); else dr.classList.remove('show');
+}
+function toggleItem(cat,idx,val){
+  menuData[cat][idx].enabled=val;
+  reRenderAll();
+  showToast(val?`✅ ${menuData[cat][idx].name} available`:`❌ ${menuData[cat][idx].name} out of stock`);
+}
+function deleteItem(cat,idx,name){
+  showConfirm(`"${name}" delete karein?`,()=>{
+    menuData[cat].splice(idx,1);
+    reRenderAll(); renderMenuEditor();
+    showToast(`🗑️ "${name}" delete ho gaya!`);
+  });
+}
+function addNewItem(){
+  const name=document.getElementById('new-name').value.trim();
+  const desc=document.getElementById('new-desc').value.trim();
+  const cat=document.getElementById('new-cat').value;
+  const spice=parseInt(document.getElementById('new-spice').value);
+  const type=activeItemType;
+  if(!name){showToast('⚠️ Dish ka naam likhein');return;}
+  let newItem={id:'custom_'+(++newItemId),name,desc:desc||'Fresh & delicious',type,spice,enabled:true};
+  if(type==='single'){
+    const price=parseInt(document.getElementById('new-price').value);
+    if(!price||price<=0){showToast('⚠️ Sahi price likhein');return;}
+    newItem.price=price;
+  }else{
+    const half=parseInt(document.getElementById('new-half').value);
+    const full=parseInt(document.getElementById('new-full').value);
+    if(!half||!full||half<=0||full<=0){showToast('⚠️ Half aur Full dono price likhein');return;}
+    newItem.priceHalf=half; newItem.priceFull=full;
+  }
+  menuData[cat].push(newItem);
+  activeMenuEditorCat=cat;
+  reRenderAll(); renderMenuEditor();
+  showToast(`✅ "${name}" menu mein add ho gaya!`);
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+updateCartUI();
+</script>
+</body>
+</html>
