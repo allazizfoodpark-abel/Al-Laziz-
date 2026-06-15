@@ -359,9 +359,9 @@ header p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
 </header>
 
 <!-- WAIT PILL -->
-<div class="wait-pill">
-  <div class="wait-dot"></div>
-  <span>⏱️ Abhi wait time: <strong>~15-20 min</strong></span>
+<div class="wait-pill" id="wait-pill">
+  <div class="wait-dot" id="wait-dot"></div>
+  <span>⏱️ Abhi wait time: <strong id="wait-time-text">~15-20 min</strong></span>
 </div>
 
 <!-- SETUP -->
@@ -369,23 +369,6 @@ header p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
   <div class="s-label">Pehle Yahan Se Shuru Karein 👇</div>
   <select id="order-type" onchange="handleOrderType()">
     <option value="" disabled selected>🍽️ Table chunein ya Parcel...</option>
-    <option value="Table 1">🪑 Table 1</option>
-    <option value="Table 2">🪑 Table 2</option>
-    <option value="Table 3">🪑 Table 3</option>
-    <option value="Table 4">🪑 Table 4</option>
-    <option value="Table 5">🪑 Table 5</option>
-    <option value="Table 6">🪑 Table 6</option>
-    <option value="Table 7">🪑 Table 7</option>
-    <option value="Table 8">🪑 Table 8</option>
-    <option value="Table 9">🪑 Table 9</option>
-    <option value="Table 10">🪑 Table 10</option>
-    <option value="Table 11">🪑 Table 11</option>
-    <option value="Table 12">🪑 Table 12</option>
-    <option value="Table 13">🪑 Table 13</option>
-    <option value="Table 14">🪑 Table 14</option>
-    <option value="Table 15">🪑 Table 15</option>
-    <option value="Table 16">🪑 Table 16</option>
-    <option value="Parcel">📦 Ghar Ke Liye (Parcel)</option>
   </select>
   <div class="v-err" id="ot-err">⚠️ Pehle Table ya Parcel zaroor chunein</div>
   <div id="parcel-details"><input type="text" id="cust-name" placeholder="👤 Aapka Naam likhein..."></div>
@@ -511,11 +494,13 @@ header p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
         <div class="atab" onclick="switchAdminTab('orders',this)">📬 Orders</div>
         <div class="atab" onclick="switchAdminTab('sales',this)">📊 Sales</div>
         <div class="atab" onclick="switchAdminTab('menu',this)">✏️ Menu</div>
+        <div class="atab" onclick="switchAdminTab('settings',this)">⚙️ Settings</div>
       </div>
       <div id="admin-tables" class="admin-section active"></div>
       <div id="admin-orders" class="admin-section"></div>
       <div id="admin-sales" class="admin-section"></div>
       <div id="admin-menu" class="admin-section"></div>
+      <div id="admin-settings" class="admin-section"></div>
     </div>
   </div>
 </div>
@@ -528,6 +513,25 @@ header p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
     <input type="password" class="pass-input" id="pass-input" placeholder="••••" maxlength="6" onkeyup="if(event.key==='Enter')checkPass()">
     <button class="pass-ok" onclick="checkPass()">Andar Jaao</button>
     <div class="pass-err" id="pass-err">❌ Galat password!</div>
+  </div>
+</div>
+
+<!-- ADD MORE ITEMS MODAL -->
+<div class="modal-ov" id="addMoreModal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3>➕ Aur Items Add Karein</h3>
+      <button class="modal-close" onclick="closeModal('addMoreModal')">×</button>
+    </div>
+    <div class="modal-tag" id="addmore-tag">Table —</div>
+    <div id="addmore-body" style="padding:10px 17px;overflow-y:auto;flex:1;"></div>
+    <div style="padding:12px 17px 0;flex-shrink:0;">
+      <div class="total-row">
+        <span class="total-lbl">New Items Total</span>
+        <span class="total-amt" id="addmore-total">₹0</span>
+      </div>
+      <button class="checkout-btn" onclick="confirmAddMore()">💬 WhatsApp Pe Bhejein</button>
+    </div>
   </div>
 </div>
 
@@ -549,9 +553,16 @@ header p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
 // ════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════
-const WA_NUMBER      = "917388907339";
 const GOOGLE_REVIEW  = "https://share.google/2AtLD3YJ7i7smbJF9";
-const ADMIN_PASS     = "1234"; // ← apna password yahan badlein
+// Dynamic config - Admin se change hoga
+let appConfig = {
+  waNumber: localStorage.getItem('cfg_wa') || "917388907339",
+  adminPass: localStorage.getItem('cfg_pass') || "1234",
+  waitTime: localStorage.getItem('cfg_wait') || "15-20 min",
+  waitStatus: localStorage.getItem('cfg_waitstatus') || "normal" // normal | busy | low
+};
+function WA_NUMBER(){ return appConfig.waNumber; }
+function ADMIN_PASS(){ return appConfig.adminPass; }
 
 // ════════════════════════════════════════════
 // MENU DATA
@@ -598,6 +609,7 @@ let menuData = {
 };
 
 const beverages=[
+  {id:"v0",name:"Water Bottle",size:"500 ml (Chota)",icon:"💧",price:10},
   {id:"v1",name:"Water Bottle",size:"1 Litre",icon:"💧",price:20},
   {id:"v2",name:"Cold Drink",size:"250 ml (Chota)",icon:"🥤",price:20},
   {id:"v3",name:"Cold Drink",size:"750 ml (Bada)",icon:"🍶",price:40},
@@ -605,14 +617,22 @@ const beverages=[
 ];
 
 // ════════════════════════════════════════════
-// TABLE STATE  (16 tables)
-// status: 'free' | 'occupied' | 'bill_pending'
+// TABLE STATE (dynamic count)
+// status: 'free' | 'occupied' | 'bill_requested' | 'bill_pending'
 // payment: '' | 'cash' | 'online'
 // ════════════════════════════════════════════
+let tableCount = parseInt(localStorage.getItem('cfg_tablecount')) || 16;
 let tables = {};
-for(let i=1;i<=16;i++){
-  tables[`Table ${i}`]={status:'free',orders:[],total:0,payment:'',time:null};
+function rebuildTables(newCount){
+  const old = tables;
+  tables = {};
+  for(let i=1;i<=newCount;i++){
+    const key=`Table ${i}`;
+    tables[key] = old[key] || {status:'free',orders:[],total:0,payment:'',time:null};
+  }
+  tableCount = newCount;
 }
+rebuildTables(tableCount);
 
 // ════════════════════════════════════════════
 // STATE
@@ -621,7 +641,7 @@ const spiceLabels=["Mild 😊","Medium 🌶️","Spicy 🌶️🌶️","Very Spi
 const fbChipOptions=["Khana bahut accha tha 😍","Service achhi thi 👍","Saaf safai thi ✨","Daam sahi hain 💰","Jaldi milaa 🚀","Aayenge dobara 🔄"];
 const starLabels=["","Bahut bura 😞","Theek tha 😐","Accha tha 🙂","Bahut accha 😊","Lajawab! 🤩"];
 let cart={}, bevQty={}, fbRating=0, fbSelected=new Set();
-let adminOrders=[], orderHistory=[], currentOrderSnap=null;
+let adminOrders=[], orderHistory=[], currentOrderSnap=null, activeSessionTable=null, paymentLog=[];
 let adminUnlocked=false;
 let activeMenuEditorCat='starters', activeItemType='single';
 let newItemId=1000;
@@ -860,7 +880,8 @@ function placeOrder(){
   const time=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
   const date=now.toLocaleDateString('en-IN');
   let total=0; const snapItems=[];
-  let msg=`🍽 *AL-LAZIZ Food Park*\n📋 Order: *${orderSerial}*\n`;
+  const isFirstOrder = !(tables[ot] && tables[ot].status!=='free') ;
+  let msg = isFirstOrder ? `🍽 *AL-LAZIZ Food Park*\n📋 Order: *${orderSerial}*\n` : `➕ *AL-LAZIZ – Extra Order*\n📋 Order: *${orderSerial}*\n`;
   const nm=document.getElementById('cust-name').value.trim();
   if(ot==='Parcel'){msg+=`📦 Parcel${nm?' – *'+nm+'*':''}\n`;}
   else{msg+=`🪑 *${ot}*\n`;}
@@ -875,9 +896,14 @@ function placeOrder(){
   // Update table status
   if(ot!=='Parcel'){
     if(!tables[ot])tables[ot]={status:'free',orders:[],total:0,payment:'',time:null};
+    if(isFirstOrder){
+      tables[ot].orders=[...snapItems];
+      tables[ot].total=total;
+    }else{
+      tables[ot].orders=[...tables[ot].orders,...snapItems];
+      tables[ot].total+=total;
+    }
     tables[ot].status='occupied';
-    tables[ot].orders=[...snapItems];
-    tables[ot].total=total;
     tables[ot].time=time;
     tables[ot].payment='';
   }
@@ -885,15 +911,18 @@ function placeOrder(){
   adminOrders.unshift(orderObj);
   currentOrderSnap={id:orderSerial,table:ot,time,date,items:snapItems,total};
   orderHistory.unshift(currentOrderSnap);
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+  activeSessionTable = ot; // remember for "Order More"
+  populateOrderTypeSelect();
+  window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
+  cart={};
   closeModal('cartModal');
-  showBill(ot,total,date,time,snapItems,orderSerial);
+  showBill(ot,isFirstOrder?total:tables[ot]?tables[ot].total:total,date,time,isFirstOrder?snapItems:tables[ot].orders,orderSerial,isFirstOrder);
 }
 
 // ════════════════════════════════════════════
 // BILL
 // ════════════════════════════════════════════
-function showBill(ot,total,date,time,items,serial){
+function showBill(ot,total,date,time,items,serial,isFirstOrder){
   let h=`<div class="bill-restaurant-name">
     <h2>AL-LAZIZ Food Park</h2>
     <p>Order: ${serial} | ${time}, ${date}</p>
@@ -904,11 +933,37 @@ function showBill(ot,total,date,time,items,serial){
     h+=`<div class="bill-row"><span>${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty}</span><span>₹${lt}</span></div>`;
   });
   h+=`<hr class="bill-divider">
-    <div class="bill-total-row"><span>Total</span><span>₹${total}</span></div>
-    <p class="bill-meta">Shukriya! WhatsApp pe order bheja ja chuka hai 💚<br>Dobara aayein! 🙏</p>`;
+    <div class="bill-total-row"><span>Total</span><span>₹${total}</span></div>`;
+  if(isFirstOrder===false){
+    h+=`<p class="bill-meta" style="color:#1565c0;font-weight:600;">➕ Naya item add ho gaya! Running total upar dikh raha hai.</p>`;
+  }else{
+    h+=`<p class="bill-meta">Shukriya! WhatsApp pe order bheja ja chuka hai 💚</p>`;
+  }
+  // Order more / request bill — only for table orders, not parcel
+  if(ot!=='Parcel'){
+    h+=`<div style="display:flex;gap:9px;margin-top:14px;">
+      <button onclick="closeModal('billModal');window.scrollTo({top:0,behavior:'smooth'});showToast('🍽️ Menu se aur items chunein aur Add karein!')" style="flex:1;background:#e3f2fd;color:#1565c0;border:none;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">🍽️ Aur Order Karein</button>
+      <button onclick="requestBill('${ot}')" style="flex:1;background:var(--maroon);color:white;border:none;padding:12px 8px;border-radius:10px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">🙋 Bill Maangein</button>
+    </div>`;
+  }
   document.getElementById('bill-body').innerHTML=h;
   openModal('billModal');
-  setTimeout(()=>{closeModal('billModal');openFeedback();},9000);
+  if(ot==='Parcel'){
+    setTimeout(()=>{closeModal('billModal');openFeedback();},9000);
+  }
+}
+
+function requestBill(tableKey){
+  if(!tables[tableKey]){showToast('Table data nahi mila');return;}
+  tables[tableKey].status='bill_requested';
+  const t=tables[tableKey];
+  let msg=`🙋 *AL-LAZIZ – Bill Request*\n🪑 *${tableKey}*\n\n`;
+  t.orders.forEach((item,i)=>{msg+=`${i+1}. ${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty} = ₹${item.qty*item.price}\n`;});
+  msg+=`\n💰 *Total: ₹${t.total}*\n\nCustomer ne bill maanga hai — payment lekar confirm karein. 🙏`;
+  window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
+  closeModal('billModal');
+  showToast('🙋 Bill request bheji gayi! Staff aapke paas aayega.');
+  setTimeout(()=>openFeedback(),2500);
 }
 function sendBillWA(){
   if(!currentOrderSnap){showToast('Pehle order kijiye');return;}
@@ -916,7 +971,7 @@ function sendBillWA(){
   let msg=`🧾 *AL-LAZIZ – Bill*\nOrder: *${s.id}* | ${s.time}, ${s.date}\n${s.table==='Parcel'?'📦 Parcel':'🪑 '+s.table}\n\n`;
   s.items.forEach((item,i)=>{msg+=`${i+1}. ${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty} = ₹${item.qty*item.price}\n`;});
   msg+=`\n💰 *Total: ₹${s.total}*\n\nAapke saath khana share karna achha laga! 🙏`;
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+  window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 // ════════════════════════════════════════════
@@ -941,7 +996,7 @@ function submitFeedback(){
   const txt=document.getElementById('fb-text').value.trim();
   const chips=Array.from(fbSelected).join(', ');
   const msg=`⭐ *AL-LAZIZ Feedback*\nOrder: ${orderSerial}\nRating: ${'⭐'.repeat(fbRating)} (${fbRating}/5)\n${chips?'Highlights: '+chips+'\n':''}${txt?'Comment: '+txt+'\n':''}\n— ${new Date().toLocaleString('en-IN')}`;
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+  window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
   setTimeout(()=>{
     if(fbRating>=4){closeModal('fbModal');showToast('🌟 Google pe review dein – khul raha hai!');setTimeout(()=>window.open(GOOGLE_REVIEW,'_blank'),1800);}
     else{closeModal('fbModal');showToast('Shukriya! Aapka feedback mil gaya 🙏');}
@@ -958,7 +1013,7 @@ function openAdminGate(){
 }
 function checkPass(){
   const v=document.getElementById('pass-input').value;
-  if(v===ADMIN_PASS){
+  if(v===ADMIN_PASS()){
     adminUnlocked=true;
     document.getElementById('passOverlay').style.display='none';
     document.getElementById('pass-input').value='';
@@ -969,7 +1024,7 @@ function checkPass(){
     setTimeout(()=>document.getElementById('pass-err').style.display='none',2000);
   }
 }
-function openAdmin(){renderAdminTables();renderAdminOrders();renderAdminSales();renderMenuEditor();openModal('adminModal');}
+function openAdmin(){renderAdminTables();renderAdminOrders();renderAdminSales();renderMenuEditor();renderAdminSettings();openModal('adminModal');}
 function switchAdminTab(tab,btn){
   document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
@@ -977,6 +1032,7 @@ function switchAdminTab(tab,btn){
   document.getElementById('admin-'+tab).classList.add('active');
   if(tab==='tables')renderAdminTables();
   if(tab==='sales')renderAdminSales();
+  if(tab==='settings')renderAdminSettings();
 }
 
 // ════════════════════════════════════════════
@@ -984,21 +1040,23 @@ function switchAdminTab(tab,btn){
 // ════════════════════════════════════════════
 function renderAdminTables(){
   const el=document.getElementById('admin-tables');
-  const statusIcon={free:'🟢',occupied:'🔴',bill_pending:'🟡'};
-  const statusText={free:'Khaali',occupied:'Occupied',bill_pending:'Bill Pending'};
+  const statusIcon={free:'🟢',occupied:'🔴',bill_requested:'🟠',bill_pending:'🟡'};
+  const statusText={free:'Khaali',occupied:'Occupied',bill_requested:'Bill Maanga',bill_pending:'Payment Confirm Karein'};
   let h=`<div class="table-legend">
     <div class="legend-item"><div class="leg-dot leg-free"></div> Khaali</div>
     <div class="legend-item"><div class="leg-dot leg-occ"></div> Occupied</div>
-    <div class="legend-item"><div class="leg-dot leg-bill"></div> Bill Pending</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#fb8c00"></div> Bill Maanga</div>
+    <div class="legend-item"><div class="leg-dot leg-bill"></div> Payment Confirm Karein</div>
   </div>
   <div class="table-grid">`;
-  for(let i=1;i<=16;i++){
+  for(let i=1;i<=tableCount;i++){
     const key=`Table ${i}`;
     const t=tables[key];
-    h+=`<div class="t-card ${t.status}" onclick="openTableDetail('${key}')">
-      <div class="t-icon">${t.status==='free'?'🪑':t.status==='occupied'?'🍽️':'💳'}</div>
+    const cardClass = t.status==='bill_requested' ? 'bill_pending' : t.status;
+    h+=`<div class="t-card ${cardClass}" onclick="openTableDetail('${key}')">
+      <div class="t-icon">${t.status==='free'?'🪑':t.status==='occupied'?'🍽️':t.status==='bill_requested'?'🙋':'💳'}</div>
       <div class="t-num">Table ${i}</div>
-      <div class="t-status ${t.status}">${statusText[t.status]}</div>
+      <div class="t-status ${cardClass}">${statusText[t.status]}</div>
       ${t.total>0?`<div class="t-amount">₹${t.total}</div>`:''}
     </div>`;
   }
@@ -1023,9 +1081,9 @@ function renderAdminTables(){
 function openTableDetail(tableKey){
   const t=tables[tableKey];
   document.getElementById('td-title').textContent=`🪑 ${tableKey}`;
-  const statusLabel={free:'🟢 Khaali',occupied:'🔴 Occupied',bill_pending:'🟡 Bill Pending'};
+  const statusLabel={free:'🟢 Khaali',occupied:'🔴 Occupied',bill_requested:'🙋 Bill Maanga',bill_pending:'🟡 Bill Pending'};
   let body=`<div class="t-detail-header">
-    <div class="t-detail-icon">${t.status==='free'?'🪑':t.status==='occupied'?'🍽️':'💳'}</div>
+    <div class="t-detail-icon">${t.status==='free'?'🪑':t.status==='occupied'?'🍽️':t.status==='bill_requested'?'🙋':'💳'}</div>
     <div>
       <div class="t-detail-title">${tableKey}</div>
       <div class="t-detail-sub">${statusLabel[t.status]}${t.time?' · Since '+t.time:''}</div>
@@ -1038,31 +1096,34 @@ function openTableDetail(tableKey){
       body+=`<div class="t-order-row"><span>${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty}</span><span>₹${lt}</span></div>`;
     });
     body+=`<div class="t-total-row"><span>Total</span><span>₹${t.total}</span></div>`;
-    body+=`<div class="detail-section-title">Payment Status</div>`;
-    body+=`<div class="pay-btns">
-      <button class="pay-btn pay-cash${t.payment==='cash'?' selected':''}" onclick="setPayment('${tableKey}','cash')">💵 Cash</button>
-      <button class="pay-btn pay-online${t.payment==='online'?' selected':''}" onclick="setPayment('${tableKey}','online')">📱 Online / UPI</button>
-    </div>`;
-    if(t.payment){
-      body+=`<div class="payment-status-badge ${t.payment==='cash'?'psb-cash':'psb-online'}" style="margin-top:10px">
-        ✅ ${t.payment==='cash'?'Cash Payment Hua':'Online / UPI Payment Hua'}
-      </div>`;
-    }else{
-      body+=`<div class="payment-status-badge psb-pending" style="margin-top:10px">⏳ Payment Abhi Pending Hai</div>`;
+
+    if(t.status==='bill_requested'){
+      body+=`<div class="payment-status-badge" style="margin-top:10px;background:#fff3e0;color:#e65100;">🙋 Customer ne Bill maanga hai!</div>`;
     }
+
+    // ONE-STEP BILLING — big amount display + tick to confirm
+    body+=`<div style="background:var(--amber);border-radius:12px;padding:16px;margin-top:14px;text-align:center;border:2px dashed var(--gold);">
+      <div style="font-size:12px;color:#7a5c00;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Customer Ko Dene Hain</div>
+      <div style="font-family:'Playfair Display',serif;font-size:34px;color:var(--maroon);font-weight:700;margin:4px 0;">₹${t.total}</div>
+      <div style="font-size:12px;color:#7a5c00;">Payment mil gaya? Tick karein 👇</div>
+    </div>
+    <div style="display:flex;gap:9px;margin-top:10px;">
+      <button onclick="quickBill('${tableKey}','cash')" style="flex:1;background:#e8f5e9;border:2px solid #2d6a4f;color:#2d6a4f;padding:14px 8px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">✅ 💵 Cash Mila</button>
+      <button onclick="quickBill('${tableKey}','online')" style="flex:1;background:#e3f2fd;border:2px solid #1565c0;color:#1565c0;padding:14px 8px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">✅ 📱 Online Mila</button>
+    </div>
+    <div style="font-size:11px;color:var(--gray);text-align:center;margin-top:8px;">👆 Tick karte hi table khaali ho jaayegi</div>`;
   }else{
     body+=`<div class="cart-empty" style="padding:20px 0"><div class="e-icon">🪑</div><p>Is table par abhi koi order nahi.</p></div>`;
   }
   document.getElementById('td-body').innerHTML=body;
-  let acts=`<div class="t-act-row">`;
+  let acts='';
   if(t.status!=='free'){
-    acts+=`<button class="t-act-btn tab-print-btn" onclick="printTableBill('${tableKey}')">🧾 Bill Print</button>`;
-    acts+=`<button class="t-act-btn tab-wa-btn" onclick="sendTableBillWA('${tableKey}')">💬 WA Pe Bhejein</button>`;
-  }
-  acts+=`</div>`;
-  if(t.status!=='free'){
-    acts+=`<div class="t-act-row" style="margin-top:8px">
-      <button class="t-act-btn tab-free-btn" onclick="freeTable('${tableKey}')">✅ Table Khaali Karein</button>
+    acts+=`<div class="t-act-row">
+      <button class="t-act-btn" style="background:#e3f2fd;color:#1565c0;" onclick="openAddMoreItems('${tableKey}')">➕ Aur Items Add</button>
+      <button class="t-act-btn tab-wa-btn" onclick="sendTableBillWA('${tableKey}')">💬 WA Bill</button>
+    </div>
+    <div class="t-act-row" style="margin-top:8px">
+      <button class="t-act-btn tab-print-btn" onclick="printTableBill('${tableKey}')">🧾 Print Bill</button>
     </div>`;
   }
   document.getElementById('td-actions').innerHTML=acts;
@@ -1070,21 +1131,50 @@ function openTableDetail(tableKey){
   openModal('tableDetailModal');
 }
 
-function setPayment(tableKey,method){
-  tables[tableKey].payment=method;
-  tables[tableKey].status='bill_pending';
-  showToast(`✅ ${tableKey} – ${method==='cash'?'Cash':'Online'} payment mark hua!`);
-  openTableDetail(tableKey);
+// ════════════════════════════════════════════
+// ONE-TAP BILLING — Cash/Online dabao → table turant khaali
+// ════════════════════════════════════════════
+let lastFreedTable=null; // for undo
+function quickBill(tableKey,method){
+  const t=tables[tableKey];
+  if(!t.orders.length){showToast('Is table ka koi order nahi');return;}
+  // Save snapshot for undo
+  lastFreedTable={key:tableKey,data:JSON.parse(JSON.stringify(t)),method};
+  paymentLog.push({table:tableKey,method,total:t.total,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})});
+  tables[tableKey]={status:'free',orders:[],total:0,payment:'',time:null};
+  closeModal('tableDetailModal');
+  openAdmin();
+  switchAdminTab('tables',document.querySelector('.atab'));
+  showToast(`✅ ${tableKey} – ${method==='cash'?'💵 Cash':'📱 Online'} mila, table khaali! (Undo: 5 sec)`);
+  populateOrderTypeSelect();
+  // Show undo button briefly
+  showUndoBar(tableKey);
 }
 
-function freeTable(tableKey){
-  showConfirm(`${tableKey} khaali kar dein? Sab data reset ho jaayega.`,()=>{
-    tables[tableKey]={status:'free',orders:[],total:0,payment:'',time:null};
-    closeModal('tableDetailModal');
-    openAdmin();
-    switchAdminTab('tables',document.querySelector('.atab'));
-    showToast(`✅ ${tableKey} khaali kar diya!`);
-  });
+function showUndoBar(tableKey){
+  let bar=document.getElementById('undo-bar');
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='undo-bar';
+    bar.style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--charcoal);color:white;padding:10px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:6000;display:flex;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,.3);";
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML=`${tableKey} bill ho gaya <button onclick="undoFreeTable()" style="background:var(--gold);color:var(--maroon-d);border:none;padding:5px 12px;border-radius:20px;font-weight:700;font-size:12px;cursor:pointer;font-family:Inter,sans-serif;">↩️ Undo</button>`;
+  bar.style.display='flex';
+  clearTimeout(bar._t);
+  bar._t=setTimeout(()=>{bar.style.display='none';lastFreedTable=null;},5000);
+}
+
+function undoFreeTable(){
+  if(!lastFreedTable)return;
+  tables[lastFreedTable.key]=lastFreedTable.data;
+  paymentLog.pop();
+  const bar=document.getElementById('undo-bar');
+  if(bar)bar.style.display='none';
+  renderAdminTables();
+  showToast(`↩️ ${lastFreedTable.key} restore ho gaya`);
+  populateOrderTypeSelect();
+  lastFreedTable=null;
 }
 
 function sendTableBillWA(tableKey){
@@ -1093,7 +1183,7 @@ function sendTableBillWA(tableKey){
   let msg=`🧾 *AL-LAZIZ – Bill*\n🪑 *${tableKey}* | ${t.time||''}\n\n`;
   t.orders.forEach((item,i)=>{msg+=`${i+1}. ${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty} = ₹${item.qty*item.price}\n`;});
   msg+=`\n💰 *Total: ₹${t.total}*\n${t.payment?'✅ Payment: '+t.payment:'⏳ Payment Pending'}\n\nShukriya! 🙏`;
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+  window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 function printTableBill(tableKey){
@@ -1166,11 +1256,15 @@ function renderAdminSales(){
     itemMap[k].count+=item.qty; itemMap[k].rev+=item.qty*item.price;
   }));
   const top=Object.entries(itemMap).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
+  const cashTotal=paymentLog.filter(p=>p.method==='cash').reduce((s,p)=>s+p.total,0);
+  const onlineTotal=paymentLog.filter(p=>p.method==='online').reduce((s,p)=>s+p.total,0);
   let h=`<div class="sales-grid">
     <div class="sales-card"><div class="sc-icon">💰</div><div class="sc-val">₹${rev}</div><div class="sc-lbl">Total Revenue</div></div>
     <div class="sales-card"><div class="sc-icon">📬</div><div class="sc-val">${cnt}</div><div class="sc-lbl">Total Orders</div></div>
     <div class="sales-card"><div class="sc-icon">🧾</div><div class="sc-val">₹${avg}</div><div class="sc-lbl">Avg Order</div></div>
     <div class="sales-card"><div class="sc-icon">✅</div><div class="sc-val">${done}</div><div class="sc-lbl">Completed</div></div>
+    <div class="sales-card"><div class="sc-icon">💵</div><div class="sc-val">₹${cashTotal}</div><div class="sc-lbl">Cash Wasool</div></div>
+    <div class="sales-card"><div class="sc-icon">📱</div><div class="sc-val">₹${onlineTotal}</div><div class="sc-lbl">Online Wasool</div></div>
   </div>
   <div class="top-items-title">🏆 Top Selling Items</div>`;
   top.forEach(([name,data],i)=>{
@@ -1298,9 +1392,324 @@ function addNewItem(){
 }
 
 // ════════════════════════════════════════════
+// WAIT TIME — Dynamic update
+// ════════════════════════════════════════════
+function updateWaitPill(){
+  const txt=document.getElementById('wait-time-text');
+  const dot=document.getElementById('wait-dot');
+  const pill=document.getElementById('wait-pill');
+  if(!txt)return;
+  txt.textContent='~'+appConfig.waitTime;
+  // Color by status
+  if(appConfig.waitStatus==='busy'){
+    pill.style.background='#fdecea'; pill.style.borderColor='#f5c2c2'; pill.style.color='#c62828';
+    dot.style.background='#e63946';
+  } else if(appConfig.waitStatus==='low'){
+    pill.style.background='#e8f5e9'; pill.style.borderColor='#a5d6a7'; pill.style.color='#2d6a4f';
+    dot.style.background='#2d6a4f';
+  } else {
+    pill.style.background='#FFF3DC'; pill.style.borderColor='#e8c96a'; pill.style.color='#7a5c00';
+    dot.style.background='#e6a817';
+  }
+}
+
+// ════════════════════════════════════════════
+// ADD MORE ITEMS TO RUNNING TABLE
+// ════════════════════════════════════════════
+let addMoreCart={};
+let addMoreTable='';
+
+function openAddMoreItems(tableKey){
+  addMoreCart={};
+  addMoreTable=tableKey;
+  document.getElementById('addmore-tag').textContent='🪑 '+tableKey+' — Naye Items';
+  renderAddMoreBody();
+  closeModal('tableDetailModal');
+  openModal('addMoreModal');
+}
+
+function renderAddMoreBody(){
+  const container=document.getElementById('addmore-body');
+  const allItems=[];
+  ['starters','gravy','breads'].forEach(cat=>{
+    menuData[cat].forEach(item=>{ if(item.enabled) allItems.push({...item,cat}); });
+  });
+  beverages.forEach(b=>allItems.push({id:b.id,name:b.name+' ('+b.size+')',price:b.price,type:'single',cat:'bev',enabled:true}));
+
+  let h='<div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:10px;">Items chunein 👇</div>';
+  allItems.forEach(item=>{
+    const key=item.id+'_am';
+    const qty=addMoreCart[key]?addMoreCart[key].qty:0;
+    if(item.type==='single'){
+      h+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${item.name}</div>
+          <div style="font-size:12px;color:var(--maroon);">₹${item.price}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+          <button onclick="amChange('${item.id}','${item.name}',${item.price},-1)" style="background:var(--ivory);border:none;padding:6px 10px;font-size:16px;font-weight:700;color:var(--maroon);cursor:pointer;">−</button>
+          <span id="am-qty-${item.id}" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;">${qty}</span>
+          <button onclick="amChange('${item.id}','${item.name}',${item.price},1)" style="background:var(--ivory);border:none;padding:6px 10px;font-size:16px;font-weight:700;color:var(--maroon);cursor:pointer;">+</button>
+        </div>
+      </div>`;
+    } else {
+      h+=`<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:13px;font-weight:600;">${item.name}</div>
+            <div style="font-size:12px;color:var(--maroon);">₹${item.priceHalf} Half | ₹${item.priceFull} Full</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:7px;margin-top:6px;">
+          <div style="flex:1;display:flex;align-items:center;justify-content:space-between;background:var(--ivory);border-radius:7px;padding:5px 8px;border:1px solid var(--border);">
+            <span style="font-size:11px;font-weight:600;">Half ₹${item.priceHalf}</span>
+            <div style="display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:white;">
+              <button onclick="amChange('${item.id}_h','${item.name} (Half)',${item.priceHalf},-1)" style="background:var(--ivory);border:none;padding:4px 8px;font-size:14px;font-weight:700;color:var(--maroon);cursor:pointer;">−</button>
+              <span id="am-qty-${item.id}_h" style="min-width:22px;text-align:center;font-size:13px;font-weight:700;">${addMoreCart[item.id+'_h_am']?addMoreCart[item.id+'_h_am'].qty:0}</span>
+              <button onclick="amChange('${item.id}_h','${item.name} (Half)',${item.priceHalf},1)" style="background:var(--ivory);border:none;padding:4px 8px;font-size:14px;font-weight:700;color:var(--maroon);cursor:pointer;">+</button>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:space-between;background:var(--ivory);border-radius:7px;padding:5px 8px;border:1px solid var(--border);">
+            <span style="font-size:11px;font-weight:600;">Full ₹${item.priceFull}</span>
+            <div style="display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:white;">
+              <button onclick="amChange('${item.id}_f','${item.name} (Full)',${item.priceFull},-1)" style="background:var(--ivory);border:none;padding:4px 8px;font-size:14px;font-weight:700;color:var(--maroon);cursor:pointer;">−</button>
+              <span id="am-qty-${item.id}_f" style="min-width:22px;text-align:center;font-size:13px;font-weight:700;">${addMoreCart[item.id+'_f_am']?addMoreCart[item.id+'_f_am'].qty:0}</span>
+              <button onclick="amChange('${item.id}_f','${item.name} (Full)',${item.priceFull},1)" style="background:var(--ivory);border:none;padding:4px 8px;font-size:14px;font-weight:700;color:var(--maroon);cursor:pointer;">+</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+  });
+  container.innerHTML=h;
+  updateAddMoreTotal();
+}
+
+function amChange(id,name,price,delta){
+  const key=id+'_am';
+  if(!addMoreCart[key]) addMoreCart[key]={name,price,qty:0};
+  addMoreCart[key].qty=Math.max(0,addMoreCart[key].qty+delta);
+  if(addMoreCart[key].qty===0) delete addMoreCart[key];
+  const el=document.getElementById('am-qty-'+id);
+  if(el) el.textContent=addMoreCart[key]?addMoreCart[key].qty:0;
+  updateAddMoreTotal();
+}
+
+function updateAddMoreTotal(){
+  let total=0;
+  Object.values(addMoreCart).forEach(i=>total+=i.qty*i.price);
+  document.getElementById('addmore-total').textContent='₹'+total;
+}
+
+function confirmAddMore(){
+  const keys=Object.keys(addMoreCart);
+  if(!keys.length){showToast('⚠️ Koi item select nahi kiya!');return;}
+  const now=new Date();
+  const time=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  let total=0;
+  let msg=`➕ *AL-LAZIZ – Extra Items*\n🪑 *${addMoreTable}*\n🕐 ${time}\n\n*Naye Items:*\n`;
+  let i=1;
+  keys.forEach(key=>{
+    const item=addMoreCart[key];
+    const lt=item.qty*item.price; total+=lt;
+    msg+=`${i}. ${item.name} × ${item.qty} = ₹${lt}\n`; i++;
+  });
+  msg+=`\n💰 *Extra Total: ₹${total}*`;
+  // Also add to table's running total
+  if(tables[addMoreTable]){
+    keys.forEach(key=>{
+      const item=addMoreCart[key];
+      tables[addMoreTable].orders.push({name:item.name,price:item.price,qty:item.qty,variant:''});
+      tables[addMoreTable].total+=item.qty*item.price;
+    });
+  }
+  window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
+  closeModal('addMoreModal');
+  showToast(`✅ ${addMoreTable} ke naye items WhatsApp pe bheje!`);
+}
+
+// ════════════════════════════════════════════
+// ADMIN SETTINGS
+// ════════════════════════════════════════════
+function renderAdminSettings(){
+  const el=document.getElementById('admin-settings');
+  const waitOptions=[
+    {val:'5-10 min',label:'5-10 min ⚡ (Bilkul khaali)'},
+    {val:'10-15 min',label:'10-15 min 😊 (Normal)'},
+    {val:'15-20 min',label:'15-20 min 🙂 (Thoda busy)'},
+    {val:'20-30 min',label:'20-30 min 🟡 (Busy)'},
+    {val:'30-45 min',label:'30-45 min 🔴 (Bahut busy)'},
+    {val:'45+ min',label:'45+ min 🚨 (Rush hour)'},
+  ];
+  let h=`
+  <!-- WAITING TIME -->
+  <div style="background:var(--ivory);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:700;color:var(--maroon);margin-bottom:12px;">⏱️ Waiting Time Set Karein</div>
+    <div style="display:flex;flex-direction:column;gap:7px;">`;
+  waitOptions.forEach(opt=>{
+    const sel=appConfig.waitTime===opt.val;
+    h+=`<button onclick="setWaitTime('${opt.val}')" style="padding:10px 14px;border-radius:8px;border:2px solid ${sel?'var(--maroon)':'var(--border)'};background:${sel?'var(--amber)':'var(--white)'};color:${sel?'var(--maroon)':'var(--charcoal)'};font-size:13px;font-weight:${sel?700:500};cursor:pointer;text-align:left;font-family:Inter,sans-serif;">
+      ${sel?'✅ ':''}${opt.label}
+    </button>`;
+  });
+  h+=`</div>
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;color:var(--gray);margin-bottom:5px;">Ya custom time likho:</div>
+      <div style="display:flex;gap:7px;">
+        <input type="text" id="custom-wait" placeholder="e.g. 25-35 min" style="flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:Inter,sans-serif;">
+        <button onclick="setCustomWait()" style="background:var(--maroon);color:white;border:none;padding:9px 14px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Set</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE COUNT -->
+  <div style="background:var(--ivory);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:700;color:var(--maroon);margin-bottom:10px;">🪑 Total Tables Set Karein</div>
+    <div style="font-size:12px;color:var(--gray);margin-bottom:8px;">Abhi: <strong style="color:var(--charcoal);">${tableCount} Tables</strong></div>
+    <div style="display:flex;gap:7px;align-items:center;">
+      <button onclick="changeTableCount(-1)" style="background:var(--maroon);color:white;border:none;width:40px;height:40px;border-radius:8px;font-size:20px;font-weight:700;cursor:pointer;">−</button>
+      <input type="number" id="table-count-inp" value="${tableCount}" min="1" max="60" style="flex:1;text-align:center;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:16px;font-weight:700;font-family:Inter,sans-serif;">
+      <button onclick="changeTableCount(1)" style="background:var(--maroon);color:white;border:none;width:40px;height:40px;border-radius:8px;font-size:20px;font-weight:700;cursor:pointer;">+</button>
+    </div>
+    <button onclick="applyTableCount()" style="width:100%;margin-top:9px;background:var(--green);color:white;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Tables Update Karein</button>
+    <div style="font-size:11px;color:var(--gray);margin-top:6px;">⚠️ Tables kam karne se occupied tables ka data delete ho sakta hai.</div>
+  </div>
+
+  <!-- WA NUMBER -->
+  <div style="background:var(--ivory);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:700;color:var(--maroon);margin-bottom:10px;">📱 WhatsApp Number Change Karein</div>
+    <div style="font-size:12px;color:var(--gray);margin-bottom:8px;">Current: <strong style="color:var(--charcoal);">+${appConfig.waNumber}</strong></div>
+    <div style="display:flex;gap:7px;">
+      <input type="tel" id="new-wa" placeholder="91XXXXXXXXXX (country code ke saath)" style="flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:Inter,sans-serif;">
+      <button onclick="saveWaNumber()" style="background:var(--green);color:white;border:none;padding:9px 14px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">Save</button>
+    </div>
+    <div style="font-size:11px;color:var(--gray);margin-top:6px;">⚠️ Format: 91 + 10 digit number. Example: 917388907339</div>
+  </div>
+
+  <!-- PASSWORD CHANGE -->
+  <div style="background:var(--ivory);border-radius:10px;padding:14px;border:1px solid var(--border);">
+    <div style="font-size:13px;font-weight:700;color:var(--maroon);margin-bottom:10px;">🔒 Admin Password Change Karein</div>
+    <input type="password" id="new-pass1" placeholder="Naya password" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:Inter,sans-serif;margin-bottom:7px;">
+    <input type="password" id="new-pass2" placeholder="Dobara likho (confirm)" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:Inter,sans-serif;margin-bottom:9px;">
+    <button onclick="savePassword()" style="width:100%;background:var(--maroon);color:white;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Password Save Karein</button>
+  </div>`;
+  el.innerHTML=h;
+}
+
+function changeTableCount(delta){
+  const inp=document.getElementById('table-count-inp');
+  let v=parseInt(inp.value)+delta;
+  if(v<1)v=1; if(v>60)v=60;
+  inp.value=v;
+}
+
+function applyTableCount(){
+  const v=parseInt(document.getElementById('table-count-inp').value);
+  if(!v||v<1||v>60){showToast('⚠️ 1 se 60 ke beech number daalo');return;}
+  if(v<tableCount){
+    // Check if any table beyond new count is occupied
+    let occupied=[];
+    for(let i=v+1;i<=tableCount;i++){
+      const k=`Table ${i}`;
+      if(tables[k] && tables[k].status!=='free') occupied.push(k);
+    }
+    if(occupied.length){
+      showConfirm(`${occupied.join(', ')} mein order chal raha hai. Phir bhi tables kam karein?`,()=>{
+        rebuildTables(v);
+        localStorage.setItem('cfg_tablecount',v);
+        populateOrderTypeSelect();
+        renderAdminSettings(); renderAdminTables();
+        showToast(`✅ Total tables: ${v}`);
+      });
+      return;
+    }
+  }
+  rebuildTables(v);
+  localStorage.setItem('cfg_tablecount',v);
+  populateOrderTypeSelect();
+  renderAdminSettings(); renderAdminTables();
+  showToast(`✅ Total tables: ${v}`);
+}
+
+function setWaitTime(val){
+  appConfig.waitTime=val;
+  appConfig.waitStatus= val.startsWith('5')||val.startsWith('10')?'low': val.startsWith('30')||val.startsWith('45')?'busy':'normal';
+  localStorage.setItem('cfg_wait',appConfig.waitTime);
+  localStorage.setItem('cfg_waitstatus',appConfig.waitStatus);
+  updateWaitPill();
+  renderAdminSettings();
+  showToast(`✅ Wait time set: ~${val}`);
+}
+
+function setCustomWait(){
+  const v=document.getElementById('custom-wait').value.trim();
+  if(!v){showToast('⚠️ Time likho pehle');return;}
+  setWaitTime(v);
+}
+
+function saveWaNumber(){
+  const v=document.getElementById('new-wa').value.trim();
+  if(!v||v.length<11){showToast('⚠️ Sahi number daalo (91XXXXXXXXXX)');return;}
+  appConfig.waNumber=v;
+  localStorage.setItem('cfg_wa',v);
+  renderAdminSettings();
+  showToast('✅ WhatsApp number save ho gaya!');
+}
+
+function savePassword(){
+  const p1=document.getElementById('new-pass1').value;
+  const p2=document.getElementById('new-pass2').value;
+  if(!p1||p1.length<3){showToast('⚠️ Kam se kam 3 characters ka password rakho');return;}
+  if(p1!==p2){showToast('⚠️ Dono password same nahi hain!');return;}
+  appConfig.adminPass=p1;
+  localStorage.setItem('cfg_pass',p1);
+  renderAdminSettings();
+  showToast('✅ Password change ho gaya!');
+}
+
+// ════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// POPULATE TABLE SELECT (dynamic)
+// ════════════════════════════════════════════
+function populateOrderTypeSelect(){
+  const sel=document.getElementById('order-type');
+  const currentVal=sel.value;
+  // Remove all options except the first placeholder
+  while(sel.options.length>1) sel.remove(1);
+  for(let i=1;i<=tableCount;i++){
+    const key=`Table ${i}`;
+    const t=tables[key];
+    const opt=document.createElement('option');
+    opt.value=key;
+    if(!t || t.status==='free'){
+      opt.textContent=`🟢 Table ${i} — Khaali`;
+    }else{
+      opt.textContent=`🔴 Table ${i} — Occupied (Available Nahi)`;
+      opt.disabled=true;
+    }
+    sel.appendChild(opt);
+  }
+  const parcelOpt=document.createElement('option');
+  parcelOpt.value='Parcel';
+  parcelOpt.textContent='📦 Ghar Ke Liye (Parcel)';
+  sel.appendChild(parcelOpt);
+  // Restore selection if still valid AND not now disabled
+  if(currentVal){
+    const match=Array.from(sel.options).find(o=>o.value===currentVal);
+    if(match && !match.disabled) sel.value=currentVal;
+    else if(match && match.disabled){
+      // Table got occupied while user had it selected (e.g. after their own order) - keep it (their own session)
+      if(activeSessionTable===currentVal){ match.disabled=false; sel.value=currentVal; }
+      else { sel.value=''; }
+    }
+  }
+}
+
 updateCartUI();
+updateWaitPill();
+populateOrderTypeSelect();
 </script>
 </body>
 </html>
