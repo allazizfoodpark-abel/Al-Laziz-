@@ -704,6 +704,16 @@ window.fbSaveConfig = async function(key, val){
 window.fbSavePayment = async function(entry){
   try{ await db.ref('payments').push(entry); }catch(e){ console.error('fbSavePayment',e); }
 };
+window.fbRemovePaymentByTs = async function(ts){
+  try{
+    const snap = await db.ref('payments').orderByChild('ts').equalTo(ts).once('value');
+    const data = snap.val();
+    if(data){
+      const key = Object.keys(data)[0];
+      if(key) await db.ref(`payments/${key}`).remove();
+    }
+  }catch(e){ console.error('fbRemovePaymentByTs',e); }
+};
 
 // ════════════════════════════════════════════
 // REAL-TIME LISTENERS (after DOM ready)
@@ -778,25 +788,29 @@ db.ref('payments').on('value', (snap) => {
 
 // 5. Menu sync — admin se item add/delete/toggle across all devices
 db.ref('menu').on('value', (snap) => {
-  const data = snap.val();
-  if(!data) return;
-  // Update enabled status and custom items for each category
+  const data = snap.val() || {};
   ['starters','gravy','breads'].forEach(cat => {
-    if(data[cat]){
-      // Update enabled flags
-      Object.keys(data[cat]).forEach(itemId => {
-        const fbItem = data[cat][itemId];
-        const localIdx = menuData[cat].findIndex(x => x.id === itemId);
-        if(localIdx !== -1){
-          menuData[cat][localIdx].enabled = fbItem.enabled;
-        } else if(fbItem._custom){
-          // Custom item added by admin — add to local
-          menuData[cat].push(fbItem);
-        }
-      });
-    }
+    const fbCat = data[cat] || {};
+    // 1. Update enabled status for existing built-in items + sync custom items
+    Object.keys(fbCat).forEach(itemId => {
+      const fbItem = fbCat[itemId];
+      const localIdx = menuData[cat].findIndex(x => x.id === itemId);
+      if(localIdx !== -1){
+        menuData[cat][localIdx].enabled = fbItem.enabled !== false;
+      } else if(fbItem && fbItem._custom){
+        // Custom item added by admin (possibly from another device) — add to local
+        menuData[cat].push(fbItem);
+      }
+    });
+    // 2. Remove custom items that were deleted on Firebase but still exist locally
+    menuData[cat] = menuData[cat].filter(item => {
+      if(!item.id.startsWith('custom_')) return true; // keep built-in items always
+      return !!fbCat[item.id]; // keep only if still present in Firebase
+    });
   });
   reRenderAll();
+  const menuEl = document.getElementById('admin-menu');
+  if(menuEl && menuEl.classList.contains('active') && typeof renderMenuEditor === 'function') renderMenuEditor();
 });
 
 // ── Menu sync helpers ──
@@ -1413,8 +1427,8 @@ function openTableDetail(tableKey){
       <div style="font-size:12px;color:#7a5c00;">Payment mil gaya? Tick karein 👇</div>
     </div>
     <div style="display:flex;gap:9px;margin-top:10px;">
-      <button onclick="quickBill('${tableKey}','cash')" style="flex:1;background:#e8f5e9;border:2px solid #2d6a4f;color:#2d6a4f;padding:14px 8px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">✅ 💵 Cash Mila</button>
-      <button onclick="quickBill('${tableKey}','online')" style="flex:1;background:#e3f2fd;border:2px solid #1565c0;color:#1565c0;padding:14px 8px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">✅ 📱 Online Mila</button>
+      <button onclick="this.disabled=true;quickBill('${tableKey}','cash')" style="flex:1;background:#e8f5e9;border:2px solid #2d6a4f;color:#2d6a4f;padding:14px 8px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">✅ 💵 Cash Mila</button>
+      <button onclick="this.disabled=true;quickBill('${tableKey}','online')" style="flex:1;background:#e3f2fd;border:2px solid #1565c0;color:#1565c0;padding:14px 8px;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">✅ 📱 Online Mila</button>
     </div>
     <div style="font-size:11px;color:var(--gray);text-align:center;margin-top:8px;">👆 Tick karte hi table khaali ho jaayegi</div>`;
   }else{
@@ -1440,9 +1454,14 @@ function openTableDetail(tableKey){
 // ONE-TAP BILLING — Cash/Online dabao → table turant khaali
 // ════════════════════════════════════════════
 let lastFreedTable=null; // for undo
+let processingPayment = {}; // lock per table to prevent double-tap duplicate payments
+
 function quickBill(tableKey,method){
+  // Guard: agar is table ka payment already process ho raha hai, dobara mat chalao
+  if(processingPayment[tableKey]){ return; }
   const t=tables[tableKey];
   if(!t.orders.length){showToast('Is table ka koi order nahi');return;}
+  processingPayment[tableKey] = true; // lock
   // Save snapshot for undo
   lastFreedTable={key:tableKey,data:JSON.parse(JSON.stringify(t)),method};
   const payEntry={table:tableKey,method,total:t.total,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),ts:Date.now()};
@@ -1458,6 +1477,8 @@ function quickBill(tableKey,method){
   populateOrderTypeSelect();
   // Show undo button briefly
   showUndoBar(tableKey);
+  // Unlock after a short delay (Firebase sync ho jaaye uske baad)
+  setTimeout(()=>{ delete processingPayment[tableKey]; }, 2000);
 }
 
 function showUndoBar(tableKey){
@@ -1477,9 +1498,12 @@ function showUndoBar(tableKey){
 function undoFreeTable(){
   if(!lastFreedTable)return;
   tables[lastFreedTable.key]=lastFreedTable.data;
-  paymentLog.pop();
+  const removedEntry = paymentLog.pop();
   // Firebase sync — restore table
   if(window.fbUpdateTable) window.fbUpdateTable(lastFreedTable.key, lastFreedTable.data);
+  // Remove the duplicate/incorrect payment entry from Firebase too (best-effort by matching ts)
+  if(removedEntry && window.fbRemovePaymentByTs) window.fbRemovePaymentByTs(removedEntry.ts);
+  delete processingPayment[lastFreedTable.key]; // unlock immediately on undo
   const bar=document.getElementById('undo-bar');
   if(bar)bar.style.display='none';
   renderAdminTables();
