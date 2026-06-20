@@ -452,6 +452,11 @@ header p{font-family:'Amiri',serif;font-style:italic;font-size:13px;color:var(--
   <div class="wait-dot" id="wait-dot"></div>
   <span>⏱️ Abhi wait time: <strong id="wait-time-text">~15-20 min</strong></span>
 </div>
+<!-- FIREBASE STATUS -->
+<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.3);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:600;margin:6px 12px 0;color:var(--ivory,#f7efdd);">
+  <div id="fb-status-dot" style="width:7px;height:7px;border-radius:50%;background:#888;flex-shrink:0;"></div>
+  <span id="fb-status-txt">Connecting...</span>
+</div>
 
 <!-- SETUP -->
 <div class="setup-card">
@@ -638,7 +643,212 @@ header p{font-family:'Amiri',serif;font-style:italic;font-size:13px;color:var(--
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- Firebase Compat SDK (no import needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
+// ════════════════════════════════════════════
+// FIREBASE SETUP (with offline-safe fallback)
+// ════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyA1FWfheCjDVfFeuCXY6YIqkvmWj2_EcjM",
+  authDomain: "al-laziz-food-park.firebaseapp.com",
+  databaseURL: "https://al-laziz-food-park-default-rtdb.firebaseio.com",
+  projectId: "al-laziz-food-park",
+  storageBucket: "al-laziz-food-park.firebasestorage.app",
+  messagingSenderId: "437008226866",
+  appId: "1:437008226866:web:80662af8dcee0707637a2b"
+};
+
+let db = null;
+let firebaseReady = false;
+try {
+  if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseReady = true;
+  } else {
+    console.warn('Firebase SDK load nahi hui — app offline mode mein chalega (sirf is device pe)');
+  }
+} catch(e) {
+  console.warn('Firebase init fail hua — app offline mode mein chalega:', e);
+}
+
+// Dummy no-op db if Firebase unavailable, so .ref() calls don't crash
+if (!db) {
+  db = {
+    ref: () => ({
+      on: () => {},
+      set: async () => {},
+      push: async () => {},
+      remove: async () => {}
+    })
+  };
+}
+
+// ════════════════════════════════════════════
+// FIREBASE HELPER FUNCTIONS
+// ════════════════════════════════════════════
+window.fbSaveOrder = async function(orderObj){
+  try{ await db.ref(`orders/${orderObj.id}`).set(orderObj); }catch(e){ console.error('fbSaveOrder',e); }
+};
+window.fbUpdateTable = async function(tableKey, data){
+  try{ await db.ref(`tables/${tableKey.replace(/ /g,'_')}`).set(data); }catch(e){ console.error('fbUpdateTable',e); }
+};
+window.fbFreeTable = async function(tableKey){
+  try{ await db.ref(`tables/${tableKey.replace(/ /g,'_')}`).set({status:'free',orders:[],total:0,payment:'',time:null}); }catch(e){ console.error('fbFreeTable',e); }
+};
+window.fbSaveConfig = async function(key, val){
+  try{ await db.ref(`config/${key}`).set(val); }catch(e){ console.error('fbSaveConfig',e); }
+};
+window.fbSavePayment = async function(entry){
+  try{ await db.ref('payments').push(entry); }catch(e){ console.error('fbSavePayment',e); }
+};
+
+// ════════════════════════════════════════════
+// REAL-TIME LISTENERS (after DOM ready)
+// ════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+
+// 1. Tables — sync across all devices
+db.ref('tables').on('value', (snap) => {
+  const data = snap.val();
+  if(!data) return;
+  Object.keys(data).forEach(k => {
+    const tableKey = k.replace(/_/g,' ');
+    if(tables[tableKey] !== undefined){
+      tables[tableKey] = data[k];
+    }
+  });
+  populateOrderTypeSelect();
+  // If admin panel is open on tables tab, refresh it
+  const tablesEl = document.getElementById('admin-tables');
+  if(tablesEl && tablesEl.classList.contains('active')) renderAdminTables();
+  // Update table detail if open
+  if(document.getElementById('tableDetailModal')?.classList.contains('open')){
+    // silently refresh
+  }
+});
+
+// 2. Orders — admin sees all orders real-time
+db.ref('orders').on('value', (snap) => {
+  const data = snap.val();
+  if(!data) return;
+  const incoming = Object.values(data).sort((a,b) => (b.ts||0)-(a.ts||0));
+  // Merge with local — avoid duplicates
+  incoming.forEach(o => {
+    if(!adminOrders.find(x => x.id === o.id)){
+      adminOrders.unshift(o);
+    } else {
+      // Update status if changed
+      const idx = adminOrders.findIndex(x => x.id === o.id);
+      if(idx !== -1) adminOrders[idx] = o;
+    }
+  });
+  const ordersEl = document.getElementById('admin-orders');
+  if(ordersEl && ordersEl.classList.contains('active')) renderAdminOrders();
+  const salesEl = document.getElementById('admin-sales');
+  if(salesEl && salesEl.classList.contains('active')) renderAdminSales();
+  // Update cart-float badge for admin if orders arrived
+  updateLiveBadge();
+});
+
+// 3. Config — wait time, WA number sync
+db.ref('config').on('value', (snap) => {
+  const data = snap.val();
+  if(!data) return;
+  if(data.waitTime){ appConfig.waitTime = data.waitTime; }
+  if(data.waitStatus){ appConfig.waitStatus = data.waitStatus; }
+  if(data.waNumber){ appConfig.waNumber = data.waNumber; }
+  if(data.tableCount && data.tableCount !== tableCount){
+    rebuildTables(data.tableCount);
+    populateOrderTypeSelect();
+  }
+  updateWaitPill();
+});
+
+// 4. Payments log sync
+db.ref('payments').on('value', (snap) => {
+  const data = snap.val();
+  if(!data) return;
+  paymentLog = Object.values(data);
+  const salesEl = document.getElementById('admin-sales');
+  if(salesEl && salesEl.classList.contains('active')) renderAdminSales();
+});
+
+// 5. Menu sync — admin se item add/delete/toggle across all devices
+db.ref('menu').on('value', (snap) => {
+  const data = snap.val();
+  if(!data) return;
+  // Update enabled status and custom items for each category
+  ['starters','gravy','breads'].forEach(cat => {
+    if(data[cat]){
+      // Update enabled flags
+      Object.keys(data[cat]).forEach(itemId => {
+        const fbItem = data[cat][itemId];
+        const localIdx = menuData[cat].findIndex(x => x.id === itemId);
+        if(localIdx !== -1){
+          menuData[cat][localIdx].enabled = fbItem.enabled;
+        } else if(fbItem._custom){
+          // Custom item added by admin — add to local
+          menuData[cat].push(fbItem);
+        }
+      });
+    }
+  });
+  reRenderAll();
+});
+
+// ── Menu sync helpers ──
+window.fbToggleMenuItem = async function(cat, itemId, val){
+  try{ await db.ref(`menu/${cat}/${itemId}/enabled`).set(val); }catch(e){ console.error('fbToggleMenuItem',e); }
+};
+window.fbAddMenuItem = async function(cat, item){
+  try{ await db.ref(`menu/${cat}/${item.id}`).set({...item, _custom:true}); }catch(e){ console.error('fbAddMenuItem',e); }
+};
+window.fbDeleteMenuItem = async function(cat, itemId){
+  try{ await db.ref(`menu/${cat}/${itemId}`).remove(); }catch(e){ console.error('fbDeleteMenuItem',e); }
+};
+window.fbSaveTableCount = async function(count){
+  try{ await db.ref('config/tableCount').set(count); }catch(e){ console.error('fbSaveTableCount',e); }
+};
+
+// ════════════════════════════════════════════
+// CONNECTION STATUS
+// ════════════════════════════════════════════
+if (firebaseReady) {
+  db.ref('.info/connected').on('value', (snap) => {
+    const isConnected = snap.val() === true;
+    const statusDot = document.getElementById('fb-status-dot');
+    const statusTxt = document.getElementById('fb-status-txt');
+    if(statusDot){
+      statusDot.style.background = isConnected ? '#2d6a4f' : '#e63946';
+      statusDot.style.animation = isConnected ? 'pulse 2s infinite' : 'none';
+    }
+    if(statusTxt){ statusTxt.textContent = isConnected ? '🟢 Live Sync ON' : '🔴 Offline'; }
+  });
+} else {
+  window.addEventListener('DOMContentLoaded', () => {
+    const statusDot = document.getElementById('fb-status-dot');
+    const statusTxt = document.getElementById('fb-status-txt');
+    if(statusDot){ statusDot.style.background = '#e6a817'; }
+    if(statusTxt){ statusTxt.textContent = '🟡 Local Mode (is device tak)'; }
+  });
+}
+
+
+
+// ════════════════════════════════════════════
+// LIVE ORDER BADGE — notif for admin
+// ════════════════════════════════════════════
+function updateLiveBadge(){
+  const pendingCount = (typeof adminOrders !== 'undefined') ? adminOrders.filter(o => o.status === 'pending').length : 0;
+  const adminBtn = document.querySelector('.admin-btn');
+  if(adminBtn){ adminBtn.textContent = pendingCount > 0 ? `⚙️ Admin 🔴${pendingCount}` : '⚙️ Admin'; }
+}
+
+}); // end DOMContentLoaded
+
 // ════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════
@@ -648,7 +858,7 @@ let appConfig = {
   waNumber: localStorage.getItem('cfg_wa') || "917388907339",
   adminPass: localStorage.getItem('cfg_pass') || "1234",
   waitTime: localStorage.getItem('cfg_wait') || "15-20 min",
-  waitStatus: localStorage.getItem('cfg_waitstatus') || "normal" // normal | busy | low
+  waitStatus: localStorage.getItem('cfg_waitstatus') || "normal"
 };
 function WA_NUMBER(){ return appConfig.waNumber; }
 function ADMIN_PASS(){ return appConfig.adminPass; }
@@ -1001,6 +1211,10 @@ function placeOrder(){
   currentOrderSnap={id:orderSerial,table:ot,time,date,items:snapItems,total};
   orderHistory.unshift(currentOrderSnap);
   activeSessionTable = ot; // remember for "Order More"
+  // ── FIREBASE SYNC ──
+  const orderForFB = {...orderObj, ts:Date.now()};
+  if(window.fbSaveOrder) window.fbSaveOrder(orderForFB);
+  if(ot!=='Parcel' && window.fbUpdateTable) window.fbUpdateTable(ot, tables[ot]);
   populateOrderTypeSelect();
   window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
   cart={};
@@ -1045,6 +1259,8 @@ function showBill(ot,total,date,time,items,serial,isFirstOrder){
 function requestBill(tableKey){
   if(!tables[tableKey]){showToast('Table data nahi mila');return;}
   tables[tableKey].status='bill_requested';
+  // ── FIREBASE SYNC ──
+  if(window.fbUpdateTable) window.fbUpdateTable(tableKey, tables[tableKey]);
   const t=tables[tableKey];
   let msg=`🙋 *AL-LAZIZ – Bill Request*\n🪑 *${tableKey}*\n\n`;
   t.orders.forEach((item,i)=>{msg+=`${i+1}. ${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty} = ₹${item.qty*item.price}\n`;});
@@ -1229,7 +1445,11 @@ function quickBill(tableKey,method){
   if(!t.orders.length){showToast('Is table ka koi order nahi');return;}
   // Save snapshot for undo
   lastFreedTable={key:tableKey,data:JSON.parse(JSON.stringify(t)),method};
-  paymentLog.push({table:tableKey,method,total:t.total,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})});
+  const payEntry={table:tableKey,method,total:t.total,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),ts:Date.now()};
+  paymentLog.push(payEntry);
+  // ── FIREBASE SYNC ──
+  if(window.fbSavePayment) window.fbSavePayment(payEntry);
+  if(window.fbFreeTable) window.fbFreeTable(tableKey);
   tables[tableKey]={status:'free',orders:[],total:0,payment:'',time:null};
   closeModal('tableDetailModal');
   openAdmin();
@@ -1258,6 +1478,8 @@ function undoFreeTable(){
   if(!lastFreedTable)return;
   tables[lastFreedTable.key]=lastFreedTable.data;
   paymentLog.pop();
+  // Firebase sync — restore table
+  if(window.fbUpdateTable) window.fbUpdateTable(lastFreedTable.key, lastFreedTable.data);
   const bar=document.getElementById('undo-bar');
   if(bar)bar.style.display='none';
   renderAdminTables();
@@ -1326,7 +1548,13 @@ function renderAdminOrders(){
   });
   el.innerHTML=h;
 }
-function setOrderStatus(idx,status){adminOrders[idx].status=status;renderAdminOrders();showToast(`Order ${adminOrders[idx].id} → ${status}`);}
+function setOrderStatus(idx,status){
+  adminOrders[idx].status=status;
+  // Save to Firebase
+  if(window.fbSaveOrder) window.fbSaveOrder(adminOrders[idx]);
+  renderAdminOrders();
+  showToast(`Order ${adminOrders[idx].id} → ${status}`);
+}
 
 // ════════════════════════════════════════════
 // SALES SUMMARY
@@ -1446,11 +1674,14 @@ function setItemType(type,el){
 }
 function toggleItem(cat,idx,val){
   menuData[cat][idx].enabled=val;
+  if(window.fbToggleMenuItem) window.fbToggleMenuItem(cat, menuData[cat][idx].id, val);
   reRenderAll();
   showToast(val?`✅ ${menuData[cat][idx].name} available`:`❌ ${menuData[cat][idx].name} out of stock`);
 }
 function deleteItem(cat,idx,name){
   showConfirm(`"${name}" delete karein?`,()=>{
+    const itemId = menuData[cat][idx].id;
+    if(window.fbDeleteMenuItem) window.fbDeleteMenuItem(cat, itemId);
     menuData[cat].splice(idx,1);
     reRenderAll(); renderMenuEditor();
     showToast(`🗑️ "${name}" delete ho gaya!`);
@@ -1475,6 +1706,7 @@ function addNewItem(){
     newItem.priceHalf=half; newItem.priceFull=full;
   }
   menuData[cat].push(newItem);
+  if(window.fbAddMenuItem) window.fbAddMenuItem(cat, newItem);
   activeMenuEditorCat=cat;
   reRenderAll(); renderMenuEditor();
   showToast(`✅ "${name}" menu mein add ho gaya!`);
@@ -1613,6 +1845,8 @@ function confirmAddMore(){
     });
   }
   window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
+  // Firebase sync — update table with new items
+  if(window.fbUpdateTable && tables[addMoreTable]) window.fbUpdateTable(addMoreTable, tables[addMoreTable]);
   closeModal('addMoreModal');
   showToast(`✅ ${addMoreTable} ke naye items WhatsApp pe bheje!`);
 }
@@ -1706,6 +1940,7 @@ function applyTableCount(){
       showConfirm(`${occupied.join(', ')} mein order chal raha hai. Phir bhi tables kam karein?`,()=>{
         rebuildTables(v);
         localStorage.setItem('cfg_tablecount',v);
+        if(window.fbSaveConfig) window.fbSaveConfig('tableCount',v);
         populateOrderTypeSelect();
         renderAdminSettings(); renderAdminTables();
         showToast(`✅ Total tables: ${v}`);
@@ -1715,6 +1950,7 @@ function applyTableCount(){
   }
   rebuildTables(v);
   localStorage.setItem('cfg_tablecount',v);
+  if(window.fbSaveConfig) window.fbSaveConfig('tableCount',v);
   populateOrderTypeSelect();
   renderAdminSettings(); renderAdminTables();
   showToast(`✅ Total tables: ${v}`);
@@ -1725,6 +1961,8 @@ function setWaitTime(val){
   appConfig.waitStatus= val.startsWith('5')||val.startsWith('10')?'low': val.startsWith('30')||val.startsWith('45')?'busy':'normal';
   localStorage.setItem('cfg_wait',appConfig.waitTime);
   localStorage.setItem('cfg_waitstatus',appConfig.waitStatus);
+  // ── FIREBASE SYNC ──
+  if(window.fbSaveConfig){ window.fbSaveConfig('waitTime',appConfig.waitTime); window.fbSaveConfig('waitStatus',appConfig.waitStatus); }
   updateWaitPill();
   renderAdminSettings();
   showToast(`✅ Wait time set: ~${val}`);
@@ -1741,6 +1979,8 @@ function saveWaNumber(){
   if(!v||v.length<11){showToast('⚠️ Sahi number daalo (91XXXXXXXXXX)');return;}
   appConfig.waNumber=v;
   localStorage.setItem('cfg_wa',v);
+  // ── FIREBASE SYNC ──
+  if(window.fbSaveConfig) window.fbSaveConfig('waNumber', v);
   renderAdminSettings();
   showToast('✅ WhatsApp number save ho gaya!');
 }
@@ -1799,6 +2039,54 @@ function populateOrderTypeSelect(){
 updateCartUI();
 updateWaitPill();
 populateOrderTypeSelect();
+
+// ════════════════════════════════════════════
+// EXPOSE FUNCTIONS TO GLOBAL (for onclick handlers)
+// ════════════════════════════════════════════
+window.handleOrderType=handleOrderType;
+window.switchCat=switchCat;
+window.addSingle=addSingle;
+window.addDual=addDual;
+window.changeBev=changeBev;
+window.changeQty=changeQty;
+window.openCart=openCart;
+window.closeModal=closeModal;
+window.openModal=openModal;
+window.placeOrder=placeOrder;
+window.sendBillWA=sendBillWA;
+window.requestBill=requestBill;
+window.rateStar=rateStar;
+window.toggleChip=toggleChip;
+window.submitFeedback=submitFeedback;
+window.openAdminGate=openAdminGate;
+window.checkPass=checkPass;
+window.switchAdminTab=switchAdminTab;
+window.openTableDetail=openTableDetail;
+window.quickBill=quickBill;
+window.undoFreeTable=undoFreeTable;
+window.sendTableBillWA=sendTableBillWA;
+window.printTableBill=printTableBill;
+window.openAddMoreItems=openAddMoreItems;
+window.amChange=amChange;
+window.confirmAddMore=confirmAddMore;
+window.setOrderStatus=setOrderStatus;
+window.renderAdminTables=renderAdminTables;
+window.renderAdminOrders=renderAdminOrders;
+window.renderAdminSales=renderAdminSales;
+window.switchMenuEditorCat=switchMenuEditorCat;
+window.setItemType=setItemType;
+window.toggleItem=toggleItem;
+window.deleteItem=deleteItem;
+window.addNewItem=addNewItem;
+window.changeTableCount=changeTableCount;
+window.applyTableCount=applyTableCount;
+window.setWaitTime=setWaitTime;
+window.setCustomWait=setCustomWait;
+window.saveWaNumber=saveWaNumber;
+window.savePassword=savePassword;
+window.closeConfirm=closeConfirm;
+window.populateOrderTypeSelect=populateOrderTypeSelect;
+window.updateCartUI=updateCartUI;
 </script>
 </body>
 </html>
