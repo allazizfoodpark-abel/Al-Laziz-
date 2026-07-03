@@ -465,13 +465,29 @@ header p{font-family:'Amiri',serif;font-style:italic;font-size:13px;color:var(--
     <option value="" disabled selected>🍽️ Table chunein ya Parcel...</option>
   </select>
   <div class="v-err" id="ot-err">⚠️ Pehle Table ya Parcel zaroor chunein</div>
+  <div id="guest-count-row" style="display:none;margin-top:8px;">
+    <select id="guest-count" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-family:'Inter',sans-serif;font-size:14px;background:#fff;color:#2A2014;">
+      <option value="">👥 Kitne log hain? (optional)</option>
+      <option value="1">👤 1 (Akele)</option>
+      <option value="2">👥 2 log</option>
+      <option value="3">👥 3 log</option>
+      <option value="4">👥 4 log</option>
+      <option value="5">👥 5 log</option>
+      <option value="6+">👨‍👩‍👧‍👦 6 ya zyada (Family/Group)</option>
+    </select>
+  </div>
   <div id="parcel-details"><input type="text" id="cust-name" placeholder="👤 Aapka Naam likhein..."></div>
   <div class="order-tag" id="order-tag"></div>
 </div>
 
 <!-- CATEGORY NAV -->
 <div class="cat-nav-wrap">
-  <div class="cat-nav">
+  <div style="margin-bottom:8px;position:relative;">
+    <input type="text" id="menu-search" placeholder="🔍 Dish dhundein... (jaise: paneer, tikka)" oninput="searchMenu(this.value)"
+      style="width:100%;padding:9px 36px 9px 14px;border-radius:22px;border:1.5px solid rgba(212,175,55,.4);background:rgba(255,250,240,.95);font-family:'Inter',sans-serif;font-size:13px;color:#2A2014;outline:none;">
+    <span id="search-clear" onclick="clearSearch()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;color:#9c8f76;">✖</span>
+  </div>
+  <div class="cat-nav" id="cat-nav-btns">
     <button class="cat-btn active" onclick="switchCat('starters',this)">🔥 Starters</button>
     <button class="cat-btn" onclick="switchCat('gravy',this)">🍲 Gravy</button>
     <button class="cat-btn" onclick="switchCat('breads',this)">🫓 Bread/Rice</button>
@@ -481,6 +497,11 @@ header p{font-family:'Amiri',serif;font-style:italic;font-size:13px;color:var(--
 
 <!-- MENU -->
 <div class="menu-wrap">
+  <div id="search-section" class="category-section" style="display:none;">
+    <div class="cat-header"><h2>🔍 Search Results</h2>
+      <div class="cat-note" id="search-count"></div></div>
+    <div id="search-items"></div>
+  </div>
   <div id="starters" class="category-section active">
     <div class="cat-header"><h2>Starters</h2>
       <div class="cat-note">ℹ️ Sabhi Tikka items mein <strong>6 pieces</strong> hote hain.</div></div>
@@ -727,7 +748,15 @@ db.ref('tables').on('value', (snap) => {
   Object.keys(data).forEach(k => {
     const tableKey = k.replace(/_/g,' ');
     if(tables[tableKey] !== undefined){
-      tables[tableKey] = data[k];
+      // Firebase khaali arrays/null strip kar deta hai — normalize karo taaki crash na ho
+      const t = data[k] || {};
+      tables[tableKey] = {
+        status: t.status || 'free',
+        orders: Array.isArray(t.orders) ? t.orders : [],
+        total: t.total || 0,
+        payment: t.payment || '',
+        time: t.time || null
+      };
     }
   });
   populateOrderTypeSelect();
@@ -770,6 +799,9 @@ db.ref('config').on('value', (snap) => {
   if(data.waitTime){ appConfig.waitTime = data.waitTime; }
   if(data.waitStatus){ appConfig.waitStatus = data.waitStatus; }
   if(data.waNumber){ appConfig.waNumber = data.waNumber; }
+  if(data.specialItemId !== undefined){ appConfig.specialItemId = data.specialItemId || ''; }
+  if(data.specialItemName !== undefined){ appConfig.specialItemName = data.specialItemName || ''; }
+  if(typeof renderSpecialBanner === 'function') renderSpecialBanner();
   if(data.tableCount && data.tableCount !== tableCount){
     rebuildTables(data.tableCount);
     populateOrderTypeSelect();
@@ -855,10 +887,34 @@ if (firebaseReady) {
 // ════════════════════════════════════════════
 // LIVE ORDER BADGE — notif for admin
 // ════════════════════════════════════════════
+let lastPendingCount = 0;
 function updateLiveBadge(){
   const pendingCount = (typeof adminOrders !== 'undefined') ? adminOrders.filter(o => o.status === 'pending').length : 0;
   const adminBtn = document.querySelector('.admin-btn');
   if(adminBtn){ adminBtn.textContent = pendingCount > 0 ? `⚙️ Admin 🔴${pendingCount}` : '⚙️ Admin'; }
+  // 🔔 Naya order aaya — sound bajao (sirf jab count badhe)
+  if(pendingCount > lastPendingCount && lastPendingCount >= 0){
+    playOrderSound();
+  }
+  lastPendingCount = pendingCount;
+}
+// Simple pleasant "ting-ting" via Web Audio (koi file download nahi chahiye)
+function playOrderSound(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18].forEach((delay,i)=>{
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = i===0 ? 880 : 1100;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.28, ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.4);
+    });
+  }catch(e){ /* browser ne block kiya toh koi baat nahi */ }
 }
 
 }); // end DOMContentLoaded
@@ -872,7 +928,9 @@ let appConfig = {
   waNumber: localStorage.getItem('cfg_wa') || "917388907339",
   adminPass: localStorage.getItem('cfg_pass') || "1234",
   waitTime: localStorage.getItem('cfg_wait') || "15-20 min",
-  waitStatus: localStorage.getItem('cfg_waitstatus') || "normal"
+  waitStatus: localStorage.getItem('cfg_waitstatus') || "normal",
+  specialItemId: localStorage.getItem('cfg_special') || "",
+  specialItemName: localStorage.getItem('cfg_special_name') || ""
 };
 function WA_NUMBER(){ return appConfig.waNumber; }
 function ADMIN_PASS(){ return appConfig.adminPass; }
@@ -958,7 +1016,7 @@ let adminOrders=[], orderHistory=[], currentOrderSnap=null, activeSessionTable=n
 let adminUnlocked=false;
 let activeMenuEditorCat='starters', activeItemType='single';
 let newItemId=1000;
-const orderSerial="ORD"+Math.floor(1000+Math.random()*9000);
+function makeOrderSerial(){ return "ORD"+Date.now().toString(36).toUpperCase().slice(-6)+Math.floor(10+Math.random()*89); }
 beverages.forEach(b=>bevQty[b.id]=0);
 
 // ════════════════════════════════════════════
@@ -1078,10 +1136,13 @@ function handleOrderType(){
   document.getElementById('ot-err').classList.remove('show');
   document.getElementById('order-type').classList.remove('err-border');
   document.getElementById('parcel-details').style.display=v==='Parcel'?'block':'none';
+  const gcRow=document.getElementById('guest-count-row');
+  if(gcRow) gcRow.style.display=(v && v!=='Parcel')?'block':'none';
   tag.textContent=v==='Parcel'?'📦 Parcel / Takeaway select kiya':`✅ ${v} select hua hai`;
   tag.classList.add('show');
 }
 function switchCat(catId,btn){
+  clearSearchUI();
   document.querySelectorAll('.category-section').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.cat-btn').forEach(e=>e.classList.remove('active'));
   document.getElementById(catId).classList.add('active');
@@ -1090,6 +1151,102 @@ function switchCat(catId,btn){
     c.style.animation='none'; c.offsetHeight;
     c.style.animation=`fadeUp .3s ease ${i*35}ms both`;
   });
+}
+
+// ════════════════════════════════════════════
+// 🔍 MENU SEARCH
+// ════════════════════════════════════════════
+function searchMenu(q){
+  q=(q||'').trim().toLowerCase();
+  const clearBtn=document.getElementById('search-clear');
+  const section=document.getElementById('search-section');
+  if(!q){ clearSearchUI(); return; }
+  if(clearBtn) clearBtn.style.display='block';
+  // Hide all category sections, show search
+  document.querySelectorAll('.category-section').forEach(e=>{e.classList.remove('active');});
+  section.style.display='block';
+  section.classList.add('active');
+  // Collect matches from food categories
+  let results=[];
+  [['starters','starters'],['gravy','gravy'],['breads','breads']].forEach(([cat])=>{
+    menuData[cat].forEach((item,idx)=>{
+      if(item.enabled && (item.name.toLowerCase().includes(q) || (item.desc||'').toLowerCase().includes(q))){
+        results.push({cat,idx,item});
+      }
+    });
+  });
+  // Beverages bhi search karo
+  beverages.forEach(b=>{
+    if((b.name+' '+b.size).toLowerCase().includes(q)) results.push({bev:true,item:b});
+  });
+  document.getElementById('search-count').innerHTML = results.length ? `✅ <strong>${results.length}</strong> items mile "${q}" ke liye` : `❌ "${q}" ke liye kuch nahi mila — doosra naam try karein`;
+  const container=document.getElementById('search-items');
+  let h='';
+  results.forEach(({cat,idx,item,bev},i)=>{
+    if(bev){
+      h+=`<div class="item-card" style="animation-delay:${i*35}ms">
+        <div class="item-dot"></div>
+        <div class="item-body">
+          <div class="item-name">${item.icon} ${item.name} (${item.size})</div>
+          <div class="item-price"><span class="ptag">₹${item.price}</span></div>
+        </div>
+        <div class="item-controls"><button class="add-btn" onclick="searchAddBev('${item.id}')">+ Add</button></div>
+      </div>`;
+      return;
+    }
+    if(item.type==='single'){
+      h+=`<div class="item-card" style="animation-delay:${i*35}ms">
+        <div class="item-dot"></div>
+        <div class="item-body">
+          <div class="item-name">${item.name}</div>
+          <div class="item-meta">${spiceHTML(item.spice)}</div>
+          <div class="item-desc">${item.desc}</div>
+          <div class="item-price"><span class="ptag">₹${item.price}</span></div>
+        </div>
+        <div class="item-controls"><button class="add-btn" onclick="searchAdd('${item.id}','${item.name.replace(/'/g,"\\'")}',${item.price},'')">+ Add</button></div>
+      </div>`;
+    }else{
+      h+=`<div class="item-card" style="animation-delay:${i*35}ms">
+        <div class="item-dot"></div>
+        <div class="item-body">
+          <div class="item-name">${item.name}</div>
+          <div class="item-meta">${spiceHTML(item.spice)}</div>
+          <div class="item-desc">${item.desc}</div>
+          <div class="item-price"><span class="ptag">Half ₹${item.priceHalf}</span> <span class="ptag">Full ₹${item.priceFull}</span></div>
+        </div>
+        <div class="item-controls" style="display:flex;gap:6px;">
+          <button class="add-btn" onclick="searchAdd('${item.id}','${item.name.replace(/'/g,"\\'")}',${item.priceHalf},'Half')">+ Half</button>
+          <button class="add-btn" onclick="searchAdd('${item.id}','${item.name.replace(/'/g,"\\'")}',${item.priceFull},'Full')">+ Full</button>
+        </div>
+      </div>`;
+    }
+  });
+  container.innerHTML=h;
+}
+// Search se seedha cart mein add (qty 1)
+function searchAdd(id,name,price,variant){
+  const key=id+'_'+(variant||'single');
+  if(cart[key]) cart[key].qty+=1; else cart[key]={name,price,qty:1,variant:variant||''};
+  updateCartUI();
+  showToast(`✓ 1 × ${name}${variant?' ('+variant+')':''} add hua!`);
+}
+function searchAddBev(bevId){
+  changeBev(bevId,1);
+  showToast('✓ Drink add hua! Drinks tab mein quantity dekh sakte hain.');
+}
+function clearSearch(){
+  const inp=document.getElementById('menu-search');
+  if(inp) inp.value='';
+  clearSearchUI();
+  // Return to starters
+  const firstBtn=document.querySelector('.cat-btn');
+  if(firstBtn) switchCat('starters', firstBtn);
+}
+function clearSearchUI(){
+  const section=document.getElementById('search-section');
+  const clearBtn=document.getElementById('search-clear');
+  if(section){section.style.display='none';section.classList.remove('active');}
+  if(clearBtn) clearBtn.style.display='none';
 }
 
 // ════════════════════════════════════════════
@@ -1194,10 +1351,15 @@ function placeOrder(){
   const date=now.toLocaleDateString('en-IN');
   let total=0; const snapItems=[];
   const isFirstOrder = !(tables[ot] && tables[ot].status!=='free') ;
+  const orderSerial = makeOrderSerial(); // har order ka apna unique ID
   let msg = isFirstOrder ? `🍽 *AL-LAZIZ Food Park*\n📋 Order: *${orderSerial}*\n` : `➕ *AL-LAZIZ – Extra Order*\n📋 Order: *${orderSerial}*\n`;
   const nm=document.getElementById('cust-name').value.trim();
   if(ot==='Parcel'){msg+=`📦 Parcel${nm?' – *'+nm+'*':''}\n`;}
-  else{msg+=`🪑 *${ot}*\n`;}
+  else{
+    msg+=`🪑 *${ot}*\n`;
+    const gc=document.getElementById('guest-count');
+    if(gc && gc.value){ msg+=`👥 ${gc.value} log\n`; }
+  }
   msg+=`🕐 ${time} | ${date}\n\n*Items:*\n`;
   let i=1;
   for(const key in cart){
@@ -1220,11 +1382,13 @@ function placeOrder(){
     tables[ot].time=time;
     tables[ot].payment='';
   }
-  const orderObj={id:orderSerial,table:ot,time,date,items:snapItems,total,status:'pending'};
+  const orderObj={id:orderSerial,table:ot,time,date,items:snapItems,total,status:'pending',ts:Date.now()};
   adminOrders.unshift(orderObj);
   currentOrderSnap={id:orderSerial,table:ot,time,date,items:snapItems,total};
   orderHistory.unshift(currentOrderSnap);
   activeSessionTable = ot; // remember for "Order More"
+  // 🔁 Repeat-order ke liye save karo
+  try{ localStorage.setItem('last_order', JSON.stringify({items:snapItems,total,ts:Date.now()})); }catch(e){}
   // ── FIREBASE SYNC ──
   const orderForFB = {...orderObj, ts:Date.now()};
   if(window.fbSaveOrder) window.fbSaveOrder(orderForFB);
@@ -1314,7 +1478,7 @@ function submitFeedback(){
   if(fbRating===0){showToast('⭐ Pehle star rating dein');return;}
   const txt=document.getElementById('fb-text').value.trim();
   const chips=Array.from(fbSelected).join(', ');
-  const msg=`⭐ *AL-LAZIZ Feedback*\nOrder: ${orderSerial}\nRating: ${'⭐'.repeat(fbRating)} (${fbRating}/5)\n${chips?'Highlights: '+chips+'\n':''}${txt?'Comment: '+txt+'\n':''}\n— ${new Date().toLocaleString('en-IN')}`;
+  const msg=`⭐ *AL-LAZIZ Feedback*\nOrder: ${currentOrderSnap?currentOrderSnap.id:'—'}\nRating: ${'⭐'.repeat(fbRating)} (${fbRating}/5)\n${chips?'Highlights: '+chips+'\n':''}${txt?'Comment: '+txt+'\n':''}\n— ${new Date().toLocaleString('en-IN')}`;
   window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
   setTimeout(()=>{
     if(fbRating>=4){closeModal('fbModal');showToast('🌟 Google pe review dein – khul raha hai!');setTimeout(()=>window.open(GOOGLE_REVIEW,'_blank'),1800);}
@@ -1557,8 +1721,15 @@ function renderAdminOrders(){
   if(!adminOrders.length){el.innerHTML=`<div class="no-orders">📭 Abhi tak koi order nahi.</div>`;return;}
   let h=`<div class="live-badge"><div class="live-dot"></div>LIVE – ${adminOrders.length} Order${adminOrders.length>1?'s':''}</div>`;
   adminOrders.forEach((o,idx)=>{
-    h+=`<div class="order-card">
-      <div class="oc-head"><span class="oc-id">${o.id}</span><span class="oc-time">${o.time}</span></div>
+    // ⏱️ Kitni der se wait — sirf pending/cooking orders ke liye
+    let waitHTML='';
+    if(o.ts && o.status!=='done'){
+      const mins=Math.floor((Date.now()-o.ts)/60000);
+      const isLate=mins>=15;
+      waitHTML=`<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:12px;margin-left:6px;${isLate?'background:#ffe5e5;color:#c62828;animation:pulse 1.5s infinite;':'background:#fff8e1;color:#8a6d00;'}">⏱️ ${mins<1?'Abhi':mins+' min'}${isLate?' ⚠️':''}</span>`;
+    }
+    h+=`<div class="order-card${(o.ts && o.status!=='done' && (Date.now()-o.ts)/60000>=15)?'" style="border:2px solid #e57373;':''}">
+      <div class="oc-head"><span class="oc-id">${o.id}</span><span class="oc-time">${o.time}${waitHTML}</span></div>
       <div class="oc-table">${o.table==='Parcel'?'📦 Parcel':'🪑 '+o.table}</div>
       <div class="oc-items">`;
     o.items.forEach(item=>{h+=`${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty}<br>`;});
@@ -1572,6 +1743,52 @@ function renderAdminOrders(){
   });
   el.innerHTML=h;
 }
+// Har minute orders tab refresh karo taaki timer update ho
+setInterval(()=>{
+  const ordersEl=document.getElementById('admin-orders');
+  if(ordersEl && ordersEl.classList.contains('active')) renderAdminOrders();
+},60000);
+// ════════════════════════════════════════════
+// ⭐ AAJ KA SPECIAL
+// ════════════════════════════════════════════
+function toggleSpecial(itemId,itemName){
+  if(appConfig.specialItemId === itemId){
+    appConfig.specialItemId=''; appConfig.specialItemName='';
+    showToast('⭐ Special hata diya');
+  }else{
+    appConfig.specialItemId=itemId; appConfig.specialItemName=itemName;
+    showToast(`⭐ "${itemName}" ab Aaj Ka Special hai!`);
+  }
+  localStorage.setItem('cfg_special',appConfig.specialItemId);
+  localStorage.setItem('cfg_special_name',appConfig.specialItemName);
+  if(window.fbSaveConfig){ window.fbSaveConfig('specialItemId',appConfig.specialItemId); window.fbSaveConfig('specialItemName',appConfig.specialItemName); }
+  renderMenuEditor();
+  renderSpecialBanner();
+}
+function renderSpecialBanner(){
+  let banner=document.getElementById('special-banner');
+  if(!appConfig.specialItemId || !appConfig.specialItemName){
+    if(banner) banner.style.display='none';
+    return;
+  }
+  if(!banner){
+    banner=document.createElement('div');
+    banner.id='special-banner';
+    banner.style.cssText='margin:10px 12px 0;padding:11px 15px;background:linear-gradient(135deg,#3d0a0a,#5c0f0f);border:1.5px solid var(--gold);border-radius:12px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:0 0 18px rgba(212,175,55,.25);';
+    banner.onclick=()=>{ const inp=document.getElementById('menu-search'); if(inp){ inp.value=appConfig.specialItemName; searchMenu(appConfig.specialItemName); inp.scrollIntoView({behavior:'smooth'}); } };
+    const setupCard=document.querySelector('.setup-card');
+    if(setupCard) setupCard.parentNode.insertBefore(banner, setupCard);
+    else document.querySelector('.menu-wrap')?.parentNode?.insertBefore(banner, document.querySelector('.menu-wrap'));
+  }
+  banner.style.display='flex';
+  banner.innerHTML=`<span style="font-size:26px;">⭐</span>
+    <div style="flex:1;">
+      <div style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;color:var(--gold-l);text-transform:uppercase;">Aaj Ka Special</div>
+      <div style="font-size:15px;font-weight:700;color:var(--ivory);">${appConfig.specialItemName}</div>
+    </div>
+    <span style="font-size:12px;color:var(--gold-l);">Dekhein →</span>`;
+}
+
 function setOrderStatus(idx,status){
   adminOrders[idx].status=status;
   // Save to Firebase
@@ -1585,10 +1802,10 @@ function setOrderStatus(idx,status){
 // ════════════════════════════════════════════
 function renderAdminSales(){
   const el=document.getElementById('admin-sales');
-  if(!adminOrders.length){el.innerHTML=`<div class="no-orders">📊 Koi sales data nahi.</div>`;return;}
+  if(!adminOrders.length && !paymentLog.length){el.innerHTML=`<div class="no-orders">📊 Koi sales data nahi.</div>`;return;}
   const rev=adminOrders.reduce((s,o)=>s+o.total,0);
   const cnt=adminOrders.length;
-  const avg=Math.round(rev/cnt);
+  const avg=cnt?Math.round(rev/cnt):0;
   const done=adminOrders.filter(o=>o.status==='done').length;
   const itemMap={};
   adminOrders.forEach(o=>o.items.forEach(item=>{
@@ -1599,7 +1816,8 @@ function renderAdminSales(){
   const top=Object.entries(itemMap).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
   const cashTotal=paymentLog.filter(p=>p.method==='cash').reduce((s,p)=>s+p.total,0);
   const onlineTotal=paymentLog.filter(p=>p.method==='online').reduce((s,p)=>s+p.total,0);
-  let h=`<div class="sales-grid">
+  let h=`<button onclick="sendDailySummary()" style="width:100%;margin-bottom:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:white;border:none;padding:13px;border-radius:11px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">📊 Aaj Ki Report WhatsApp Pe Bhejein</button>
+  <div class="sales-grid">
     <div class="sales-card"><div class="sc-icon">💰</div><div class="sc-val">₹${rev}</div><div class="sc-lbl">Total Revenue</div></div>
     <div class="sales-card"><div class="sc-icon">📬</div><div class="sc-val">${cnt}</div><div class="sc-lbl">Total Orders</div></div>
     <div class="sales-card"><div class="sc-icon">🧾</div><div class="sc-val">₹${avg}</div><div class="sc-lbl">Avg Order</div></div>
@@ -1616,7 +1834,51 @@ function renderAdminSales(){
       <div class="ti-rev">₹${data.rev}</div>
     </div>`;
   });
+  // 📈 Weekly Trends — payments ts se
+  const dayNames=['Ravivar','Somvar','Mangalvar','Budhvar','Guruvar','Shukravar','Shanivar'];
+  const dayTotals=[0,0,0,0,0,0,0];
+  paymentLog.forEach(p=>{ if(p.ts){ dayTotals[new Date(p.ts).getDay()]+=p.total; } });
+  const maxDay=Math.max(...dayTotals,1);
+  if(dayTotals.some(v=>v>0)){
+    h+=`<div class="top-items-title" style="margin-top:16px;">📈 Hafte Ka Trend (kis din kitni sale)</div>`;
+    dayTotals.forEach((total,d)=>{
+      const pct=Math.round((total/maxDay)*100);
+      h+=`<div style="display:flex;align-items:center;gap:8px;margin:5px 0;">
+        <div style="width:72px;font-size:11px;font-weight:600;color:#5c4a2a;">${dayNames[d]}</div>
+        <div style="flex:1;background:#f0e8d5;border-radius:8px;height:18px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--gold),#b8952e);border-radius:8px;transition:width .4s;"></div>
+        </div>
+        <div style="width:60px;font-size:11px;font-weight:700;color:#3d0a0a;text-align:right;">₹${total}</div>
+      </div>`;
+    });
+  }
   el.innerHTML=h;
+}
+
+// ════════════════════════════════════════════
+// 📊 DAILY SUMMARY REPORT — WhatsApp pe
+// ════════════════════════════════════════════
+function sendDailySummary(){
+  const today=new Date().toLocaleDateString('en-IN');
+  const todayOrders=adminOrders.filter(o=>o.date===today);
+  const todayPayments=paymentLog.filter(p=>p.ts && new Date(p.ts).toLocaleDateString('en-IN')===today);
+  const rev=todayPayments.reduce((s,p)=>s+p.total,0);
+  const cash=todayPayments.filter(p=>p.method==='cash').reduce((s,p)=>s+p.total,0);
+  const online=todayPayments.filter(p=>p.method==='online').reduce((s,p)=>s+p.total,0);
+  const itemMap={};
+  todayOrders.forEach(o=>o.items.forEach(item=>{
+    const k=item.name; if(!itemMap[k])itemMap[k]=0; itemMap[k]+=item.qty;
+  }));
+  const top3=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  let msg=`📊 *AL-LAZIZ – Din Ki Report*\n📅 ${today}\n\n`;
+  msg+=`💰 *Wasool: ₹${rev}*\n💵 Cash: ₹${cash}\n📱 Online: ₹${online}\n\n`;
+  msg+=`📬 Orders: ${todayOrders.length}\n`;
+  if(top3.length){
+    msg+=`\n🏆 *Aaj Ke Top Items:*\n`;
+    top3.forEach(([name,qty],i)=>{ msg+=`${i+1}. ${name} — ${qty}x\n`; });
+  }
+  msg+=`\n— AL-LAZIZ Smart Ordering 🍽️`;
+  window.open(`https://wa.me/${WA_NUMBER()}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
 // ════════════════════════════════════════════
@@ -1631,9 +1893,11 @@ function renderMenuEditor(){
   h+=`</div><div id="me-item-list">`;
   menuData[activeMenuEditorCat].forEach((item,idx)=>{
     const priceStr=item.type==='single'?`₹${item.price}`:`₹${item.priceHalf} Half / ₹${item.priceFull} Full`;
-    h+=`<div class="me-item-row">
+    const isSpecial = appConfig.specialItemId === item.id;
+    h+=`<div class="me-item-row"${isSpecial?' style="background:rgba(212,175,55,.12);border:1px solid var(--gold);border-radius:8px;"':''}>
+      <button onclick="toggleSpecial('${item.id}','${item.name.replace(/'/g,"\\'")}')" title="Aaj Ka Special banao" style="background:none;border:none;font-size:19px;cursor:pointer;padding:2px 6px;filter:${isSpecial?'none':'grayscale(1) opacity(.45)'};">⭐</button>
       <div class="me-info">
-        <div class="me-name">${item.name}</div>
+        <div class="me-name">${item.name}${isSpecial?' <span style="font-size:10px;background:var(--gold);color:#3d0a0a;padding:1px 7px;border-radius:10px;font-weight:700;">AAJ KA SPECIAL</span>':''}</div>
         <div class="me-price">${priceStr}</div>
       </div>
       <label class="me-toggle" title="${item.enabled?'Available':'Out of Stock'}">
@@ -2063,6 +2327,47 @@ function populateOrderTypeSelect(){
 updateCartUI();
 updateWaitPill();
 populateOrderTypeSelect();
+renderSpecialBanner();
+
+// ════════════════════════════════════════════
+// 🔁 REPEAT ORDER — "Wahi Phir Se?"
+// ════════════════════════════════════════════
+function showRepeatBanner(){
+  let saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('last_order')||'null'); }catch(e){}
+  if(!saved || !saved.items || !saved.items.length) return;
+  let banner=document.getElementById('repeat-banner');
+  if(!banner){
+    banner=document.createElement('div');
+    banner.id='repeat-banner';
+    banner.style.cssText='margin:10px 12px 0;padding:10px 14px;background:rgba(212,175,55,.08);border:1.5px dashed rgba(212,175,55,.5);border-radius:12px;display:flex;align-items:center;gap:10px;';
+    const setupCard=document.querySelector('.setup-card');
+    if(setupCard) setupCard.parentNode.insertBefore(banner, setupCard.nextSibling);
+  }
+  const itemsPreview=saved.items.slice(0,2).map(i=>i.name).join(', ')+(saved.items.length>2?` +${saved.items.length-2} aur`:'');
+  banner.innerHTML=`<span style="font-size:22px;">🔁</span>
+    <div style="flex:1;">
+      <div style="font-size:12px;font-weight:700;color:var(--gold-l);">Pichli baar ka order</div>
+      <div style="font-size:12px;color:var(--ivory);opacity:.85;">${itemsPreview} — ₹${saved.total}</div>
+    </div>
+    <button onclick="repeatLastOrder()" style="background:var(--gold);color:#3d0a0a;border:none;padding:7px 13px;border-radius:18px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;">Wahi Phir Se</button>
+    <button onclick="document.getElementById('repeat-banner').style.display='none'" style="background:none;border:none;color:#9c8f76;font-size:15px;cursor:pointer;padding:2px;">✖</button>`;
+}
+function repeatLastOrder(){
+  let saved=null;
+  try{ saved=JSON.parse(localStorage.getItem('last_order')||'null'); }catch(e){}
+  if(!saved) return;
+  cart={};
+  saved.items.forEach(item=>{
+    const key=(item.id||item.name.replace(/\s/g,'_'))+'_'+(item.variant||'single');
+    cart[key]={name:item.name,price:item.price,qty:item.qty,variant:item.variant||''};
+  });
+  updateCartUI();
+  document.getElementById('repeat-banner').style.display='none';
+  showToast('🔁 Pichla order cart mein aa gaya! Table select karke bhej dein.');
+  openCart();
+}
+showRepeatBanner();
 
 // ════════════════════════════════════════════
 // EXPOSE FUNCTIONS TO GLOBAL (for onclick handlers)
@@ -2111,6 +2416,13 @@ window.savePassword=savePassword;
 window.closeConfirm=closeConfirm;
 window.populateOrderTypeSelect=populateOrderTypeSelect;
 window.updateCartUI=updateCartUI;
+window.searchMenu=searchMenu;
+window.clearSearch=clearSearch;
+window.searchAdd=searchAdd;
+window.searchAddBev=searchAddBev;
+window.toggleSpecial=toggleSpecial;
+window.repeatLastOrder=repeatLastOrder;
+window.sendDailySummary=sendDailySummary;
 </script>
 </body>
 </html>
