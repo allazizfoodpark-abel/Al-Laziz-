@@ -535,6 +535,12 @@ header p{font-family:'Amiri',serif;font-style:italic;font-size:13px;color:var(--
 @media (prefers-reduced-motion: reduce){
   .steam,.flame,.spice,.cb-line1,.cb-dots span{animation:none;}
 }
+/* ── Zomato-style menu sheet & counts ── */
+.ms-row{padding:12px 16px;font-size:13.5px;font-weight:600;color:var(--ivory);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:1px solid rgba(212,175,55,.18);font-family:'Inter',sans-serif;}
+.ms-row:last-child{border-bottom:none;}
+.ms-row:active{background:rgba(212,175,55,.15);}
+.ms-count{font-size:11px;color:var(--gold);font-weight:700;}
+.cat-count{font-size:12px;color:var(--sky);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:0;vertical-align:middle;}
 </style>
 </head>
 <body>
@@ -639,17 +645,17 @@ header p{font-family:'Amiri',serif;font-style:italic;font-size:13px;color:var(--
     <div id="search-items"></div>
   </div>
   <div id="starters" class="category-section active">
-    <div class="cat-header"><h2>Starters</h2>
+    <div class="cat-header"><h2>Starters <span class="cat-count" id="count-starters"></span></h2>
       <div class="cat-note">ℹ️ Sabhi Tikka items mein <strong>6 pieces</strong> hote hain.</div></div>
     <div id="starter-items"></div>
   </div>
   <div id="gravy" class="category-section">
-    <div class="cat-header"><h2>Gravy</h2>
+    <div class="cat-header"><h2>Gravy <span class="cat-count" id="count-gravy"></span></h2>
       <div class="cat-note">ℹ️ <strong>Half</strong> = 4 pieces (2 log) | <strong>Full</strong> = 6 pieces (3 log)</div></div>
     <div id="gravy-items"></div>
   </div>
   <div id="breads" class="category-section">
-    <div class="cat-header"><h2>Bread / Rice</h2>
+    <div class="cat-header"><h2>Bread / Rice <span class="cat-count" id="count-breads"></span></h2>
       <div class="cat-note">ℹ️ Quantity box mein number likhein, phir <strong>Add</strong> dabayein.</div></div>
     <div id="breads-items"></div>
   </div>
@@ -667,6 +673,34 @@ header p{font-family:'Amiri',serif;font-style:italic;font-size:13px;color:var(--
     <span class="cf-text">Cart Dekhen</span>
   </div>
   <span class="cf-total" id="cart-total">₹0</span>
+</div>
+
+<!-- 🍽️ MERA ORDER floating button (order ke baad dikhega) -->
+<div id="my-order-fab" onclick="openMyOrders()" style="display:none;position:fixed;bottom:84px;right:14px;background:linear-gradient(135deg,#3d0a0a,#5c0f0f);border:1.5px solid var(--gold);color:var(--gold-l);padding:10px 15px;border-radius:26px;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;z-index:998;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.45);display:none;align-items:center;gap:7px;">
+  <span id="mo-fab-dot" style="width:8px;height:8px;border-radius:50%;background:#f4b400;animation:pulse 1.6s infinite;"></span>
+  🍽️ Mera Order
+</div>
+
+<!-- ☰ ZOMATO-STYLE MENU JUMP BUTTON -->
+<div id="menu-fab" onclick="toggleMenuSheet()" style="position:fixed;bottom:84px;left:14px;background:var(--charcoal);border:1.5px solid rgba(212,175,55,.5);color:var(--gold-l);padding:10px 16px;border-radius:26px;font-size:13px;font-weight:800;font-family:'Inter',sans-serif;z-index:998;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.45);letter-spacing:1px;display:flex;align-items:center;gap:6px;">
+  ☰ MENU
+</div>
+<div id="menu-sheet" style="display:none;position:fixed;bottom:134px;left:14px;background:#1f130a;border:1.5px solid var(--gold);border-radius:14px;z-index:997;box-shadow:0 8px 28px rgba(0,0,0,.6);overflow:hidden;min-width:190px;">
+  <div onclick="jumpToCat('starters')" class="ms-row">🔥 Starters <span id="ms-c-starters" class="ms-count"></span></div>
+  <div onclick="jumpToCat('gravy')" class="ms-row">🍲 Gravy <span id="ms-c-gravy" class="ms-count"></span></div>
+  <div onclick="jumpToCat('breads')" class="ms-row">🫓 Bread/Rice <span id="ms-c-breads" class="ms-count"></span></div>
+  <div onclick="jumpToCat('beverages')" class="ms-row">🥤 Drinks <span id="ms-c-beverages" class="ms-count"></span></div>
+</div>
+
+<!-- MERA ORDER MODAL -->
+<div class="modal-ov" id="myOrderModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>🍽️ Mera Order</h3>
+      <button class="m-close" onclick="closeModal('myOrderModal')">✕</button>
+    </div>
+    <div class="modal-body" id="my-order-body"></div>
+  </div>
 </div>
 
 <!-- CART MODAL -->
@@ -896,6 +930,8 @@ db.ref('tables').on('value', (snap) => {
     }
   });
   populateOrderTypeSelect();
+  // 🔄 Session validate — table free ho gayi toh customer ka session khatam
+  if(typeof window.onTablesSync === 'function') window.onTablesSync();
   // If admin panel is open on tables tab, refresh it
   const tablesEl = document.getElementById('admin-tables');
   if(tablesEl && tablesEl.classList.contains('active')) renderAdminTables();
@@ -926,6 +962,8 @@ db.ref('orders').on('value', (snap) => {
   if(salesEl && salesEl.classList.contains('active')) renderAdminSales();
   // Update cart-float badge for admin if orders arrived
   updateLiveBadge();
+  // 🍽️ Customer ka apna order status update (Mera Order)
+  if(typeof window.onMyOrdersSync === 'function') window.onMyOrdersSync();
 });
 
 // 3. Config — wait time, WA number sync
@@ -957,24 +995,31 @@ db.ref('payments').on('value', (snap) => {
 // 5. Menu sync — admin se item add/delete/toggle across all devices
 db.ref('menu').on('value', (snap) => {
   const data = snap.val() || {};
-  ['starters','gravy','breads'].forEach(cat => {
+  window.deletedMenuItems = {starters:[],gravy:[],breads:[],beverages:[]};
+  ['starters','gravy','breads','beverages'].forEach(cat => {
+    const arr = (cat==='beverages') ? beverages : menuData[cat];
     const fbCat = data[cat] || {};
-    // 1. Update enabled status for existing built-in items + sync custom items
     Object.keys(fbCat).forEach(itemId => {
       const fbItem = fbCat[itemId];
-      const localIdx = menuData[cat].findIndex(x => x.id === itemId);
+      const localIdx = arr.findIndex(x => x.id === itemId);
+      // 🗑️ Deleted marker — item ko sab devices se hatao (built-in ho ya custom)
+      if(fbItem && fbItem._deleted){
+        if(localIdx !== -1) arr.splice(localIdx,1);
+        window.deletedMenuItems[cat].push({id:itemId, ...fbItem});
+        return;
+      }
       if(localIdx !== -1){
-        menuData[cat][localIdx].enabled = fbItem.enabled !== false;
+        arr[localIdx].enabled = fbItem.enabled !== false;
       } else if(fbItem && fbItem._custom){
-        // Custom item added by admin (possibly from another device) — add to local
-        menuData[cat].push(fbItem);
+        arr.push(fbItem);
       }
     });
-    // 2. Remove custom items that were deleted on Firebase but still exist locally
-    menuData[cat] = menuData[cat].filter(item => {
-      if(!item.id.startsWith('custom_')) return true; // keep built-in items always
-      return !!fbCat[item.id]; // keep only if still present in Firebase
+    // Custom items jinka Firebase record hi nahi bacha — remove
+    const filtered = arr.filter(item => {
+      if(!item.id.startsWith('custom_')) return true;
+      return !!fbCat[item.id];
     });
+    arr.length = 0; filtered.forEach(x=>arr.push(x));
   });
   reRenderAll();
   const menuEl = document.getElementById('admin-menu');
@@ -988,8 +1033,16 @@ window.fbToggleMenuItem = async function(cat, itemId, val){
 window.fbAddMenuItem = async function(cat, item){
   try{ await db.ref(`menu/${cat}/${item.id}`).set({...item, _custom:true}); }catch(e){ console.error('fbAddMenuItem',e); }
 };
-window.fbDeleteMenuItem = async function(cat, itemId){
-  try{ await db.ref(`menu/${cat}/${itemId}`).remove(); }catch(e){ console.error('fbDeleteMenuItem',e); }
+window.fbDeleteMenuItem = async function(cat, item){
+  // remove() nahi — "deleted marker" set karo taaki built-in items bhi SAB devices pe permanently delete rahen
+  try{ await db.ref(`menu/${cat}/${item.id}`).set({...item, _deleted:true}); }catch(e){ console.error('fbDeleteMenuItem',e); }
+};
+window.fbRestoreMenuItem = async function(cat, item){
+  try{
+    const restored = {...item}; delete restored._deleted;
+    if(!restored.enabled) restored.enabled = true;
+    await db.ref(`menu/${cat}/${item.id}`).set(restored);
+  }catch(e){ console.error('fbRestoreMenuItem',e); }
 };
 window.fbSaveTableCount = async function(count){
   try{ await db.ref('config/tableCount').set(count); }catch(e){ console.error('fbSaveTableCount',e); }
@@ -1023,13 +1076,17 @@ if (firebaseReady) {
 // ════════════════════════════════════════════
 // LIVE ORDER BADGE — notif for admin
 // ════════════════════════════════════════════
-let lastPendingCount = 0;
+let lastPendingCount = -1; // -1 = first sync skip (page load pe purane orders ki sound na baje)
 function updateLiveBadge(){
   const pendingCount = (typeof adminOrders !== 'undefined') ? adminOrders.filter(o => o.status === 'pending').length : 0;
+  const isAdmin = (typeof adminUnlocked !== 'undefined' && adminUnlocked);
   const adminBtn = document.querySelector('.admin-btn');
-  if(adminBtn){ adminBtn.textContent = pendingCount > 0 ? `⚙️ Admin 🔴${pendingCount}` : '⚙️ Admin'; }
-  // 🔔 Naya order aaya — sound bajao (sirf jab count badhe)
-  if(pendingCount > lastPendingCount && lastPendingCount >= 0){
+  if(adminBtn){
+    // Badge sirf admin ko dikhe — customers ko pending count nahi dikhna chahiye
+    adminBtn.textContent = (isAdmin && pendingCount > 0) ? `⚙️ Admin 🔴${pendingCount}` : '⚙️ Admin';
+  }
+  // 🔔 Sound sirf admin ke device pe, aur first-load pe nahi
+  if(isAdmin && lastPendingCount >= 0 && pendingCount > lastPendingCount){
     playOrderSound();
   }
   lastPendingCount = pendingCount;
@@ -1038,6 +1095,7 @@ function updateLiveBadge(){
 function playOrderSound(){
   try{
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(ctx.state === 'suspended'){ ctx.resume(); }
     [0, 0.18].forEach((delay,i)=>{
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -1148,7 +1206,9 @@ const spiceLabels=["Mild 😊","Medium 🌶️","Spicy 🌶️🌶️","Very Spi
 const fbChipOptions=["Khana bahut accha tha 😍","Service achhi thi 👍","Saaf safai thi ✨","Daam sahi hain 💰","Jaldi milaa 🚀","Aayenge dobara 🔄"];
 const starLabels=["","Bahut bura 😞","Theek tha 😐","Accha tha 🙂","Bahut accha 😊","Lajawab! 🤩"];
 let cart={}, bevQty={}, fbRating=0, fbSelected=new Set();
-let adminOrders=[], orderHistory=[], currentOrderSnap=null, activeSessionTable=null, paymentLog=[];
+let adminOrders=[], orderHistory=[], currentOrderSnap=null, paymentLog=[];
+// 🔄 Session restore — dobara scan karne pe customer ki table yaad rahe
+let activeSessionTable = localStorage.getItem('session_table') || null;
 let adminUnlocked=false;
 let activeMenuEditorCat='starters', activeItemType='single';
 let newItemId=1000;
@@ -1239,7 +1299,7 @@ function renderMenu(cat,cid){
 }
 function renderBeverages(){
   const g=document.getElementById('bev-grid'); let h='';
-  beverages.forEach((b,i)=>{
+  beverages.filter(b=>b.enabled!==false).forEach((b,i)=>{
     h+=`<div class="bev-card" style="animation-delay:${i*60}ms" id="bev-card-${b.id}">
       <div class="bev-added-badge" id="bev-badge-${b.id}">✓ Cart Mein</div>
       <div class="bev-icon">${b.icon}</div>
@@ -1260,7 +1320,43 @@ function reRenderAll(){
   renderMenu('gravy','gravy-items');
   renderMenu('breads','breads-items');
   renderBeverages();
+  updateCatCounts();
 }
+// ── Zomato-style: item counts + menu jump sheet ──
+function updateCatCounts(){
+  const counts={
+    starters: menuData.starters.filter(i=>i.enabled).length,
+    gravy: menuData.gravy.filter(i=>i.enabled).length,
+    breads: menuData.breads.filter(i=>i.enabled).length,
+    beverages: beverages.filter(i=>i.enabled!==false).length
+  };
+  Object.entries(counts).forEach(([cat,n])=>{
+    const h=document.getElementById('count-'+cat);
+    if(h) h.textContent=`· ${n} items`;
+    const m=document.getElementById('ms-c-'+cat);
+    if(m) m.textContent=n;
+  });
+}
+function toggleMenuSheet(){
+  const s=document.getElementById('menu-sheet');
+  if(s) s.style.display = s.style.display==='none' ? 'block' : 'none';
+}
+function jumpToCat(catId){
+  toggleMenuSheet();
+  const btns=document.querySelectorAll('.cat-btn');
+  const order=['starters','gravy','breads','beverages'];
+  const btn=btns[order.indexOf(catId)];
+  if(btn) switchCat(catId, btn);
+  document.querySelector('.cat-nav-wrap')?.scrollIntoView({behavior:'smooth'});
+}
+// Sheet bahar tap karne pe band ho jaaye
+document.addEventListener('click', (e)=>{
+  const sheet=document.getElementById('menu-sheet');
+  const fab=document.getElementById('menu-fab');
+  if(sheet && sheet.style.display!=='none' && !sheet.contains(e.target) && !fab.contains(e.target)){
+    sheet.style.display='none';
+  }
+});
 reRenderAll();
 
 // ════════════════════════════════════════════
@@ -1312,8 +1408,8 @@ function searchMenu(q){
     });
   });
   // Beverages bhi search karo
-  beverages.forEach(b=>{
-    if((b.name+' '+b.size).toLowerCase().includes(q)) results.push({bev:true,item:b});
+  beverages.filter(b=>b.enabled!==false).forEach(b=>{
+    if((b.name+' '+(b.size||'')).toLowerCase().includes(q)) results.push({bev:true,item:b});
   });
   document.getElementById('search-count').innerHTML = results.length ? `✅ <strong>${results.length}</strong> items mile "${q}" ke liye` : `❌ "${q}" ke liye kuch nahi mila — doosra naam try karein`;
   const container=document.getElementById('search-items');
@@ -1523,6 +1619,18 @@ function placeOrder(){
   currentOrderSnap={id:orderSerial,table:ot,time,date,items:snapItems,total};
   orderHistory.unshift(currentOrderSnap);
   activeSessionTable = ot; // remember for "Order More"
+  if(ot!=='Parcel'){ try{ localStorage.setItem('session_table', ot); }catch(e){} }
+  // 🍽️ Mera Order tracking — apne order IDs + full detail cache yaad rakho
+  try{
+    const mine = JSON.parse(localStorage.getItem('my_order_ids')||'[]');
+    mine.unshift(orderSerial);
+    localStorage.setItem('my_order_ids', JSON.stringify(mine.slice(0,10)));
+    const cache = JSON.parse(localStorage.getItem('my_orders_cache')||'[]');
+    cache.unshift(orderObj);
+    localStorage.setItem('my_orders_cache', JSON.stringify(cache.slice(0,10)));
+  }catch(e){}
+  showMyOrderFab();
+  const gcSel=document.getElementById('guest-count'); if(gcSel) gcSel.value='';
   // 🔁 Repeat-order ke liye save karo
   try{ localStorage.setItem('last_order', JSON.stringify({items:snapItems,total,ts:Date.now()})); }catch(e){}
   // ── FIREBASE SYNC ──
@@ -2020,24 +2128,27 @@ function sendDailySummary(){
 // ════════════════════════════════════════════
 // MENU EDITOR
 // ════════════════════════════════════════════
+function getCatArray(cat){ return cat==='beverages' ? beverages : menuData[cat]; }
 function renderMenuEditor(){
   const el=document.getElementById('admin-menu');
-  const cats=['starters','gravy','breads'];
-  const catLabels={starters:'🔥 Starters',gravy:'🍲 Gravy',breads:'🫓 Bread/Rice'};
+  const cats=['starters','gravy','breads','beverages'];
+  const catLabels={starters:'🔥 Starters',gravy:'🍲 Gravy',breads:'🫓 Bread/Rice',beverages:'🥤 Drinks'};
   let h=`<div class="me-cat-tabs">`;
   cats.forEach(c=>{h+=`<button class="me-tab${c===activeMenuEditorCat?' active':''}" onclick="switchMenuEditorCat('${c}',this)">${catLabels[c]}</button>`;});
   h+=`</div><div id="me-item-list">`;
-  menuData[activeMenuEditorCat].forEach((item,idx)=>{
-    const priceStr=item.type==='single'?`₹${item.price}`:`₹${item.priceHalf} Half / ₹${item.priceFull} Full`;
+  getCatArray(activeMenuEditorCat).forEach((item,idx)=>{
+    const priceStr = item.priceHalf ? `₹${item.priceHalf} Half / ₹${item.priceFull} Full` : `₹${item.price}`;
+    const dispName = item.name + (item.size ? ` (${item.size})` : '');
     const isSpecial = appConfig.specialItemId === item.id;
+    const isOn = item.enabled !== false;
     h+=`<div class="me-item-row"${isSpecial?' style="background:rgba(212,175,55,.12);border:1px solid var(--gold);border-radius:8px;"':''}>
-      <button onclick="toggleSpecial('${item.id}','${item.name.replace(/'/g,"\\'")}')" title="Aaj Ka Special banao" style="background:none;border:none;font-size:19px;cursor:pointer;padding:2px 6px;filter:${isSpecial?'none':'grayscale(1) opacity(.45)'};">⭐</button>
+      <button onclick="toggleSpecial('${item.id}','${dispName.replace(/'/g,"\\'")}')" title="Aaj Ka Special banao" style="background:none;border:none;font-size:19px;cursor:pointer;padding:2px 6px;filter:${isSpecial?'none':'grayscale(1) opacity(.45)'};">⭐</button>
       <div class="me-info">
-        <div class="me-name">${item.name}${isSpecial?' <span style="font-size:10px;background:var(--gold);color:#3d0a0a;padding:1px 7px;border-radius:10px;font-weight:700;">AAJ KA SPECIAL</span>':''}</div>
+        <div class="me-name">${dispName}${isSpecial?' <span style="font-size:10px;background:var(--gold);color:#3d0a0a;padding:1px 7px;border-radius:10px;font-weight:700;">AAJ KA SPECIAL</span>':''}</div>
         <div class="me-price">${priceStr}</div>
       </div>
-      <label class="me-toggle" title="${item.enabled?'Available':'Out of Stock'}">
-        <input type="checkbox" ${item.enabled?'checked':''} onchange="toggleItem('${activeMenuEditorCat}',${idx},this.checked)">
+      <label class="me-toggle" title="${isOn?'Available':'Out of Stock'}">
+        <input type="checkbox" ${isOn?'checked':''} onchange="toggleItem('${activeMenuEditorCat}',${idx},this.checked)">
         <span class="me-slider"></span>
       </label>
       <button class="me-del-btn" onclick="deleteItem('${activeMenuEditorCat}',${idx},'${item.name}')">🗑</button>
@@ -2064,10 +2175,11 @@ function renderMenuEditor(){
       <input type="number" class="form-inp" id="new-full" placeholder="Full ₹" min="1">
     </div>
     <div class="form-row">
-      <select class="form-sel" id="new-cat">
+      <select class="form-sel" id="new-cat" onchange="document.getElementById('new-desc').placeholder=this.value==='beverages'?'Size (jaise: 500 ml)':'Short description'">
         <option value="starters">🔥 Starters</option>
         <option value="gravy">🍲 Gravy</option>
         <option value="breads">🫓 Bread/Rice</option>
+        <option value="beverages">🥤 Drinks</option>
       </select>
       <select class="form-sel" id="new-spice">
         <option value="0">Mild 😊</option>
@@ -2078,10 +2190,37 @@ function renderMenuEditor(){
     </div>
     <button class="form-add-btn" onclick="addNewItem()">✅ Item Add Karein</button>
   </div>`;
+  // 🗑️ Deleted items — restore section
+  const delItems = (window.deletedMenuItems && window.deletedMenuItems[activeMenuEditorCat]) || [];
+  if(delItems.length){
+    h+=`<div style="margin-top:16px;padding:12px;background:#fff5f5;border:1.5px dashed #e57373;border-radius:11px;">
+      <div style="font-size:13px;font-weight:700;color:#c62828;margin-bottom:9px;">🗑️ Deleted Items — Wapas Laa Sakte Hain</div>`;
+    delItems.forEach(item=>{
+      h+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #ffe0e0;">
+        <span style="font-size:13px;color:#7a3030;">${item.name}</span>
+        <button onclick="restoreItem('${activeMenuEditorCat}','${item.id}')" style="background:#2d6a4f;color:#fff;border:none;padding:6px 13px;border-radius:16px;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">↩️ Wapas Laao</button>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
   el.innerHTML=h;
   // Set category select
   const catSel=el.querySelector('#new-cat');
   if(catSel) catSel.value=activeMenuEditorCat;
+}
+function restoreItem(cat,itemId){
+  const delItems = (window.deletedMenuItems && window.deletedMenuItems[cat]) || [];
+  const item = delItems.find(x=>x.id===itemId);
+  if(!item) return;
+  if(window.fbRestoreMenuItem) window.fbRestoreMenuItem(cat, item);
+  showToast(`↩️ "${item.name}" wapas menu mein aa gaya!`);
+  // Listener sync hone pe khud re-render hoga; built-in ke liye turant local restore bhi:
+  if(!item.id.startsWith('custom_')){
+    const restored={...item}; delete restored._deleted;
+    const tArr=getCatArray(cat);
+    if(!tArr.find(x=>x.id===item.id)) tArr.push(restored);
+    reRenderAll(); renderMenuEditor();
+  }
 }
 
 function switchMenuEditorCat(cat,btn){
@@ -2097,16 +2236,18 @@ function setItemType(type,el){
   if(type==='dual') dr.classList.add('show'); else dr.classList.remove('show');
 }
 function toggleItem(cat,idx,val){
-  menuData[cat][idx].enabled=val;
-  if(window.fbToggleMenuItem) window.fbToggleMenuItem(cat, menuData[cat][idx].id, val);
+  const arr=getCatArray(cat);
+  arr[idx].enabled=val;
+  if(window.fbToggleMenuItem) window.fbToggleMenuItem(cat, arr[idx].id, val);
   reRenderAll();
-  showToast(val?`✅ ${menuData[cat][idx].name} available`:`❌ ${menuData[cat][idx].name} out of stock`);
+  showToast(val?`✅ ${arr[idx].name} available`:`❌ ${arr[idx].name} out of stock`);
 }
 function deleteItem(cat,idx,name){
   showConfirm(`"${name}" delete karein?`,()=>{
-    const itemId = menuData[cat][idx].id;
-    if(window.fbDeleteMenuItem) window.fbDeleteMenuItem(cat, itemId);
-    menuData[cat].splice(idx,1);
+    const arr=getCatArray(cat);
+    const item = arr[idx];
+    if(window.fbDeleteMenuItem) window.fbDeleteMenuItem(cat, item);
+    arr.splice(idx,1);
     reRenderAll(); renderMenuEditor();
     showToast(`🗑️ "${name}" delete ho gaya!`);
   });
@@ -2118,18 +2259,26 @@ function addNewItem(){
   const spice=parseInt(document.getElementById('new-spice').value);
   const type=activeItemType;
   if(!name){showToast('⚠️ Dish ka naam likhein');return;}
-  let newItem={id:'custom_'+(++newItemId),name,desc:desc||'Fresh & delicious',type,spice,enabled:true};
-  if(type==='single'){
+  let newItem;
+  if(cat==='beverages'){
+    // 🥤 Drinks — single price, size desc field se, koi spice nahi
     const price=parseInt(document.getElementById('new-price').value);
-    if(!price||price<=0){showToast('⚠️ Sahi price likhein');return;}
-    newItem.price=price;
+    if(!price||price<=0){showToast('⚠️ Drinks ke liye Single Price likhein');return;}
+    newItem={id:'custom_'+(++newItemId),name,size:desc||'',icon:'🥤',price,enabled:true};
   }else{
-    const half=parseInt(document.getElementById('new-half').value);
-    const full=parseInt(document.getElementById('new-full').value);
-    if(!half||!full||half<=0||full<=0){showToast('⚠️ Half aur Full dono price likhein');return;}
-    newItem.priceHalf=half; newItem.priceFull=full;
+    newItem={id:'custom_'+(++newItemId),name,desc:desc||'Fresh & delicious',type,spice,enabled:true};
+    if(type==='single'){
+      const price=parseInt(document.getElementById('new-price').value);
+      if(!price||price<=0){showToast('⚠️ Sahi price likhein');return;}
+      newItem.price=price;
+    }else{
+      const half=parseInt(document.getElementById('new-half').value);
+      const full=parseInt(document.getElementById('new-full').value);
+      if(!half||!full||half<=0||full<=0){showToast('⚠️ Half aur Full dono price likhein');return;}
+      newItem.priceHalf=half; newItem.priceFull=full;
+    }
   }
-  menuData[cat].push(newItem);
+  getCatArray(cat).push(newItem);
   if(window.fbAddMenuItem) window.fbAddMenuItem(cat, newItem);
   activeMenuEditorCat=cat;
   reRenderAll(); renderMenuEditor();
@@ -2436,7 +2585,10 @@ function populateOrderTypeSelect(){
     const t=tables[key];
     const opt=document.createElement('option');
     opt.value=key;
-    if(!t || t.status==='free'){
+    if(key===activeSessionTable && t && t.status!=='free'){
+      // 🟠 Customer ki apni chal rahi table — hamesha select ho sakti hai
+      opt.textContent=`🟠 Table ${i} — Aapki Table (Aur Order Karein)`;
+    }else if(!t || t.status==='free'){
       opt.textContent=`🟢 Table ${i} — Khaali`;
     }else{
       opt.textContent=`🔴 Table ${i} — Occupied (Available Nahi)`;
@@ -2448,15 +2600,12 @@ function populateOrderTypeSelect(){
   parcelOpt.value='Parcel';
   parcelOpt.textContent='📦 Ghar Ke Liye (Parcel)';
   sel.appendChild(parcelOpt);
-  // Restore selection if still valid AND not now disabled
-  if(currentVal){
-    const match=Array.from(sel.options).find(o=>o.value===currentVal);
-    if(match && !match.disabled) sel.value=currentVal;
-    else if(match && match.disabled){
-      // Table got occupied while user had it selected (e.g. after their own order) - keep it (their own session)
-      if(activeSessionTable===currentVal){ match.disabled=false; sel.value=currentVal; }
-      else { sel.value=''; }
-    }
+  // Restore selection: pehle current, warna apni session table auto-select
+  const target = currentVal || activeSessionTable || '';
+  if(target){
+    const match=Array.from(sel.options).find(o=>o.value===target);
+    if(match && !match.disabled) sel.value=target;
+    else if(!currentVal) sel.value='';
   }
 }
 
@@ -2504,6 +2653,133 @@ function repeatLastOrder(){
   openCart();
 }
 showRepeatBanner();
+
+// ════════════════════════════════════════════
+// 🍽️ MERA ORDER — customer ka live order tracking
+// ════════════════════════════════════════════
+function getMyOrderIds(){
+  try{ return JSON.parse(localStorage.getItem('my_order_ids')||'[]'); }catch(e){ return []; }
+}
+function getMyOrders(){
+  const ids = getMyOrderIds();
+  let cache=[];
+  try{ cache = JSON.parse(localStorage.getItem('my_orders_cache')||'[]'); }catch(e){}
+  // Live version (status ke saath) prefer karo, warna cache se dikhaao
+  return ids.map(id => adminOrders.find(o => o.id === id) || cache.find(o => o.id === id)).filter(Boolean);
+}
+// 🔄 Table free hui (payment ho gaya) → session clear
+window.onTablesSync = function(){
+  if(activeSessionTable && tables[activeSessionTable] && tables[activeSessionTable].status === 'free'){
+    activeSessionTable = null;
+    try{ localStorage.removeItem('session_table'); }catch(e){}
+    const wb = document.getElementById('welcome-back');
+    if(wb) wb.style.display='none';
+    populateOrderTypeSelect();
+  } else {
+    showWelcomeBack();
+  }
+};
+// 👋 Dobara scan pe "Aap Table X pe hain" banner
+function showWelcomeBack(){
+  if(!activeSessionTable || !tables[activeSessionTable] || tables[activeSessionTable].status==='free') return;
+  let wb = document.getElementById('welcome-back');
+  if(!wb){
+    wb = document.createElement('div');
+    wb.id='welcome-back';
+    wb.style.cssText='margin:10px 12px 0;padding:11px 15px;background:linear-gradient(135deg,#1a3a2a,#2d6a4f);border:1.5px solid #4caf83;border-radius:12px;display:flex;align-items:center;gap:10px;';
+    const setupCard=document.querySelector('.setup-card');
+    if(setupCard) setupCard.parentNode.insertBefore(wb, setupCard);
+  }
+  wb.style.display='flex';
+  wb.innerHTML=`<span style="font-size:22px;">🪑</span>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#d9f2e6;">Aap ${activeSessionTable} pe hain</div>
+      <div style="font-size:11px;color:#a8d8c0;">Aapka order chal raha hai — aur bhi order kar sakte hain</div>
+    </div>
+    <button onclick="openMyOrders()" style="background:#fff;color:#2d6a4f;border:none;padding:7px 13px;border-radius:18px;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;">Mera Order</button>`;
+}
+function showMyOrderFab(){
+  const fab = document.getElementById('my-order-fab');
+  if(fab && getMyOrderIds().length){ fab.style.display='flex'; }
+}
+function openMyOrders(){
+  renderMyOrders();
+  openModal('myOrderModal');
+}
+function statusStep(status){ return status==='done'?3:status==='cooking'?2:1; }
+function renderMyOrders(){
+  const el = document.getElementById('my-order-body');
+  const myOrders = getMyOrders();
+  if(!myOrders.length){
+    el.innerHTML = getMyOrderIds().length
+      ? `<div class="cart-empty" style="padding:24px 0"><div class="e-icon">⏳</div><p>Order details la rahe hain... ek second!</p></div>`
+      : `<div class="cart-empty" style="padding:24px 0"><div class="e-icon">🍽️</div><p>Abhi tak koi order nahi. Menu se kuch order karein!</p></div>`;
+    return;
+  }
+  let h = '';
+  myOrders.forEach((o,i) => {
+    const step = statusStep(o.status);
+    const statusLabel = step===3 ? '✅ Taiyaar Hai — Le Aa Rahe Hain!' : step===2 ? '👨‍🍳 Ban Raha Hai...' : '⏳ Order Mil Gaya';
+    const statusColor = step===3 ? '#2d6a4f' : step===2 ? '#b45309' : '#8a6d00';
+    h += `<div style="border:1.5px solid var(--border);border-radius:12px;padding:13px;margin-bottom:12px;background:var(--white);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-weight:700;font-size:13px;color:var(--maroon-d);">${o.id}</span>
+        <span style="font-size:11px;color:var(--gray);">${o.table} · ${o.time}</span>
+      </div>
+      <!-- Status tracker -->
+      <div style="display:flex;align-items:center;gap:0;margin:12px 0 6px;">
+        ${[1,2,3].map(s=>{
+          const active = step>=s;
+          const icons=['📥','👨‍🍳','✅'];
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
+            ${s>1?`<div style="position:absolute;top:14px;left:-50%;width:100%;height:3px;background:${step>=s?'#2d6a4f':'#e3d6b8'};z-index:0;"></div>`:''}
+            <div style="width:30px;height:30px;border-radius:50%;background:${active?'#2d6a4f':'#eee'};color:${active?'#fff':'#aaa'};display:flex;align-items:center;justify-content:center;font-size:14px;z-index:1;${step===s?'box-shadow:0 0 0 4px rgba(45,106,79,.2);':''}">${icons[s-1]}</div>
+            <div style="font-size:9px;margin-top:4px;color:${active?'#2d6a4f':'#999'};font-weight:${active?'700':'400'};">${['Order Mila','Ban Raha','Taiyaar'][s-1]}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="text-align:center;font-size:13px;font-weight:700;color:${statusColor};margin:8px 0;">${statusLabel}</div>
+      <div style="border-top:1px dashed var(--border);padding-top:8px;font-size:12px;color:#5c4a2a;">
+        ${o.items.map(it=>`${it.name}${it.variant?' ('+it.variant+')':''} × ${it.qty} — ₹${it.qty*it.price}`).join('<br>')}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;color:var(--maroon-d);margin-top:7px;">
+        <span>Total</span><span>₹${o.total}</span>
+      </div>
+    </div>`;
+  });
+  // Session actions
+  if(activeSessionTable || getMyOrders().some(o=>o.table!=='Parcel')){
+    const tbl = activeSessionTable || getMyOrders().find(o=>o.table!=='Parcel')?.table;
+    if(tbl && tables[tbl] && tables[tbl].status!=='free'){
+      h += `<div style="display:flex;gap:8px;margin-top:4px;">
+        <button onclick="closeModal('myOrderModal');document.querySelector('.cat-nav')?.scrollIntoView({behavior:'smooth'});" style="flex:1;background:#e3f2fd;color:#1565c0;border:none;padding:11px;border-radius:10px;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;">🍽️ Aur Order Karein</button>
+        <button onclick="closeModal('myOrderModal');requestBill('${tbl}')" style="flex:1;background:#fff3e0;color:#e65100;border:none;padding:11px;border-radius:10px;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;">🙋 Bill Maangein</button>
+      </div>`;
+    }
+  }
+  el.innerHTML = h;
+}
+// Live status change detection + notification
+let myLastStatuses = {};
+window.onMyOrdersSync = function(){
+  const myOrders = getMyOrders();
+  myOrders.forEach(o => {
+    const prev = myLastStatuses[o.id];
+    if(prev && prev !== o.status){
+      if(o.status==='cooking') showToast('👨‍🍳 Aapka khana ban raha hai!');
+      if(o.status==='done'){ showToast('✅ Aapka khana taiyaar hai! 🎉'); }
+      // FAB dot color update
+      const dot=document.getElementById('mo-fab-dot');
+      if(dot) dot.style.background = o.status==='done' ? '#2d6a4f' : '#f4b400';
+    }
+    myLastStatuses[o.id] = o.status;
+  });
+  showMyOrderFab();
+  // Agar modal khula hai toh live refresh
+  const modal=document.getElementById('myOrderModal');
+  if(modal && modal.classList.contains('open')) renderMyOrders();
+};
+showMyOrderFab();
 
 // ════════════════════════════════════════════
 // EXPOSE FUNCTIONS TO GLOBAL (for onclick handlers)
@@ -2559,6 +2835,11 @@ window.searchAddBev=searchAddBev;
 window.toggleSpecial=toggleSpecial;
 window.repeatLastOrder=repeatLastOrder;
 window.sendDailySummary=sendDailySummary;
+window.toggleMenuSheet=toggleMenuSheet;
+window.jumpToCat=jumpToCat;
+window.restoreItem=restoreItem;
+window.openMyOrders=openMyOrders;
+window.showMyOrderFab=showMyOrderFab;
 </script>
 </body>
 </html>
