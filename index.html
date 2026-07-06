@@ -895,6 +895,20 @@ window.fbSaveConfig = async function(key, val){
 window.fbSavePayment = async function(entry){
   try{ await db.ref('payments').push(entry); }catch(e){ console.error('fbSavePayment',e); }
 };
+window.fbDeleteOrder = async function(orderId){
+  try{ await db.ref(`orders/${orderId}`).remove(); }catch(e){ console.error('fbDeleteOrder',e); }
+};
+window.fbFreshStart = async function(tableKeys){
+  // Orders + payments saaf, saari tables free — menu aur settings SAFE rehti hain
+  try{
+    await db.ref('orders').remove();
+    await db.ref('payments').remove();
+    for(const k of tableKeys){
+      await db.ref(`tables/${k.replace(/ /g,'_')}`).set({status:'free',orders:[],total:0,payment:'',time:null});
+    }
+    return true;
+  }catch(e){ console.error('fbFreshStart',e); return false; }
+};
 window.fbRemovePaymentByTs = async function(ts){
   try{
     const snap = await db.ref('payments').orderByChild('ts').equalTo(ts).once('value');
@@ -944,8 +958,22 @@ db.ref('tables').on('value', (snap) => {
 // 2. Orders — admin sees all orders real-time
 db.ref('orders').on('value', (snap) => {
   const data = snap.val();
-  if(!data) return;
+  if(!data){
+    // Fresh start / sab orders delete hue — local bhi saaf karo
+    adminOrders.length = 0;
+    const oEl = document.getElementById('admin-orders');
+    if(oEl && oEl.classList.contains('active')) renderAdminOrders();
+    const sEl = document.getElementById('admin-sales');
+    if(sEl && sEl.classList.contains('active')) renderAdminSales();
+    updateLiveBadge();
+    if(typeof window.onMyOrdersSync === 'function') window.onMyOrdersSync();
+    return;
+  }
   const incoming = Object.values(data).sort((a,b) => (b.ts||0)-(a.ts||0));
+  // Firebase se delete hue orders local se bhi hatao
+  for(let i=adminOrders.length-1;i>=0;i--){
+    if(!incoming.find(o=>o.id===adminOrders[i].id)) adminOrders.splice(i,1);
+  }
   // Merge with local — avoid duplicates
   incoming.forEach(o => {
     if(!adminOrders.find(x => x.id === o.id)){
@@ -986,8 +1014,7 @@ db.ref('config').on('value', (snap) => {
 // 4. Payments log sync
 db.ref('payments').on('value', (snap) => {
   const data = snap.val();
-  if(!data) return;
-  paymentLog = Object.values(data);
+  paymentLog = data ? Object.values(data) : [];
   const salesEl = document.getElementById('admin-sales');
   if(salesEl && salesEl.classList.contains('active')) renderAdminSales();
 });
@@ -1973,7 +2000,7 @@ function renderAdminOrders(){
       waitHTML=`<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:12px;margin-left:6px;${isLate?'background:#ffe5e5;color:#c62828;animation:pulse 1.5s infinite;':'background:#fff8e1;color:#8a6d00;'}">⏱️ ${mins<1?'Abhi':mins+' min'}${isLate?' ⚠️':''}</span>`;
     }
     h+=`<div class="order-card${(o.ts && o.status!=='done' && (Date.now()-o.ts)/60000>=15)?'" style="border:2px solid #e57373;':''}">
-      <div class="oc-head"><span class="oc-id">${o.id}</span><span class="oc-time">${o.time}${waitHTML}</span></div>
+      <div class="oc-head"><span class="oc-id">${o.id}</span><span class="oc-time">${o.time}${waitHTML} <button onclick="deleteOrder(${idx})" title="Yeh order record se hatao" style="background:none;border:none;font-size:14px;cursor:pointer;padding:2px 4px;opacity:.55;">🗑</button></span></div>
       <div class="oc-table">${o.table==='Parcel'?'📦 Parcel':'🪑 '+o.table}</div>
       <div class="oc-items">`;
     o.items.forEach(item=>{h+=`${item.name}${item.variant?' ('+item.variant+')':''} × ${item.qty}<br>`;});
@@ -2031,6 +2058,41 @@ function renderSpecialBanner(){
       <div style="font-size:15px;font-weight:700;color:var(--ivory);">${appConfig.specialItemName}</div>
     </div>
     <span style="font-size:12px;color:var(--gold-l);">Dekhein →</span>`;
+}
+
+// 🗑 Galat entry — ek order record se hatao
+function deleteOrder(idx){
+  const o = adminOrders[idx];
+  if(!o) return;
+  showConfirm(`Order ${o.id} (₹${o.total}) record se delete karein? Table pe koi asar nahi hoga.`,()=>{
+    if(window.fbDeleteOrder) window.fbDeleteOrder(o.id);
+    adminOrders.splice(idx,1);
+    renderAdminOrders();
+    showToast(`🗑 ${o.id} delete ho gaya`);
+  });
+}
+
+// 🔄 Fresh Start — saara trial/purana data saaf (menu + settings SAFE)
+function freshStart(){
+  showConfirm(`⚠️ SAB orders, sales aur tables ka data DELETE ho jaayega!\n\nMenu aur Settings safe rahengi.\n\nPakka Fresh Start karein?`,()=>{
+    showConfirm(`Aakhri baar puchh raha hoon — yeh WAPAS NAHI aayega. Karein?`, async ()=>{
+      const keys = Object.keys(tables);
+      const ok = window.fbFreshStart ? await window.fbFreshStart(keys) : false;
+      // Local bhi saaf
+      adminOrders.length = 0; paymentLog = []; orderHistory.length = 0;
+      keys.forEach(k=>{ tables[k]={status:'free',orders:[],total:0,payment:'',time:null}; });
+      try{
+        localStorage.removeItem('my_order_ids');
+        localStorage.removeItem('my_orders_cache');
+        localStorage.removeItem('last_order');
+        localStorage.removeItem('session_table');
+      }catch(e){}
+      activeSessionTable = null;
+      renderAdminTables(); renderAdminOrders(); renderAdminSales();
+      populateOrderTypeSelect(); updateLiveBadge();
+      showToast(ok ? '🔄 Fresh Start ho gaya! Sab saaf.' : '⚠️ Cloud clear mein dikkat — net check karo');
+    });
+  });
 }
 
 function setOrderStatus(idx,status){
@@ -2488,6 +2550,13 @@ function renderAdminSettings(){
     <input type="password" id="new-pass1" placeholder="Naya password" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:Inter,sans-serif;margin-bottom:7px;">
     <input type="password" id="new-pass2" placeholder="Dobara likho (confirm)" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:Inter,sans-serif;margin-bottom:9px;">
     <button onclick="savePassword()" style="width:100%;background:var(--maroon);color:white;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">Password Save Karein</button>
+  </div>
+
+  <!-- DANGER ZONE -->
+  <div style="background:#fff5f5;border-radius:10px;padding:14px;border:1.5px dashed #e57373;margin-top:14px;">
+    <div style="font-size:13px;font-weight:700;color:#c62828;margin-bottom:6px;">⚠️ Danger Zone — Fresh Start</div>
+    <div style="font-size:12px;color:#7a3030;line-height:1.5;margin-bottom:10px;">Trial/purana <strong>saara data</strong> (orders, sales, tables) delete hoga.<br>✅ Menu aur Settings <strong>safe</strong> rahengi.</div>
+    <button onclick="freshStart()" style="width:100%;background:#c62828;color:white;border:none;padding:11px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;">🔄 Fresh Start — Sab Records Saaf Karein</button>
   </div>`;
   el.innerHTML=h;
 }
@@ -2838,6 +2907,8 @@ window.sendDailySummary=sendDailySummary;
 window.toggleMenuSheet=toggleMenuSheet;
 window.jumpToCat=jumpToCat;
 window.restoreItem=restoreItem;
+window.deleteOrder=deleteOrder;
+window.freshStart=freshStart;
 window.openMyOrders=openMyOrders;
 window.showMyOrderFab=showMyOrderFab;
 </script>
