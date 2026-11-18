@@ -2,45 +2,112 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script type="text/plain" id="menu-data">
+// ============ MENU YAHAN BADLEIN (sirf is hisse ko) ============
+// Item kuch din band karna:  line ke aakhir mein  | OFF  likh dein
+// Item wapas chalu karna:    | OFF  hata dein
+// Naya item:  kisi line ko copy karke naam aur rate badlein
+// Full/Half:  Naam | Full 180, Half 120
+// Veg item:  | VEG        Naye item par badge:  | NEW
+// Nayi category:  [Category ka naam]  aur uske neeche items
+// NOTICE = ke aage likhi baat menu ke upar dikhegi (khaali = kuch nahi)
+// ===============================================================
+
+WHATSAPP = 917388907339
+TABLES = 20
+NOTICE =
+
+[Starter]
+Seekh Kabab            | 30 per pc          | OFF
+Boti Kabab             | 30                 | OFF
+Malai Tikka            | 100
+Afghani Tikka          | 100
+AL-Laziz Special Tikka | 150
+Chicken Angara         | 100
+Chicken 65             | Full 100, Half 50  | OFF
+Ginger Chicken         | Full 100, Half 50  | OFF
+
+[Gravy]
+Butter Chicken         | Full 180, Half 120
+Chicken Haryali        | Full 180, Half 120
+Chicken Masala         | Full 180, Half 120
+Chicken Kastoori       | Full 180, Half 120
+Chicken Achari         | Full 180, Half 120
+Chicken Chatpata       | Full 180, Half 120
+Chicken Kolhapuri      | Full 180, Half 120
+Chicken Afghani        | Full 180, Half 120
+Chicken Mughlai        | Full 180, Half 120
+Chicken Kali Mirch     | Full 180, Half 120
+Chicken Punjabi        | Full 180, Half 120
+Chicken Peshawari      | Full 180, Half 120
+Chicken Kadhai         | Full 180, Half 120
+AL-Laziz Spl. Chicken  | Full 180, Half 120
+Shahi Paneer           | Full 180, Half 120 | VEG
+Kaju Paneer            | Full 180, Half 120 | VEG
+Dal Fry                | 70                 | VEG | OFF
+
+[Bread / Rice]
+Roomali Roti           | 8 per pc           | VEG | OFF
+Butter Naan            | 12                 | VEG
+Plain Naan             | 10                 | VEG
+Plain Rice             | Full 30, Half 20   | VEG
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AL-LAZIZ Food Park | Menu & Order</title>
+<title>AL-LAZIZ Food Park | Menu &amp; Order</title>
 <meta name="theme-color" content="#6e1418">
 <style>
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:#fbf1dc;color:#3a0c0f;font-family:Arial,Helvetica,sans-serif;padding-bottom:96px}
+body{margin:0;background:#fbf1dc;color:#3a0c0f;font-family:Arial,Helvetica,sans-serif;padding-bottom:100px}
 header{background:#6e1418;border-bottom:4px solid #d4a53c;padding:16px 14px 14px;text-align:center;color:#fff3dc}
 header h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:25px;letter-spacing:2px;color:#e9c46a}
 header p{margin:4px 0 0;font-family:Georgia,serif;font-style:italic;font-size:14px}
-.how{max-width:720px;margin:12px auto 0;padding:0 12px;font-size:14px;line-height:1.5;text-align:center;color:#6e1418}
-nav{position:sticky;top:0;z-index:5;background:#fbf1dc;display:flex;gap:8px;justify-content:center;padding:10px 8px;border-bottom:1px solid #e3cfa3}
-nav a{text-decoration:none;font-weight:bold;font-size:14px;color:#6e1418;border:2px solid #6e1418;border-radius:20px;padding:7px 14px;background:#fff8e8}
+.wrap{max-width:720px;margin:0 auto;padding:0 12px}
+.notice{display:none;margin:12px 0 0;padding:10px 12px;background:#fff3cd;border:2px dashed #d4a53c;border-radius:10px;text-align:center;font-weight:bold;font-size:15px;color:#6e1418}
+.how{max-width:720px;margin:12px auto 0;padding:0 12px;font-size:14.5px;line-height:1.5;text-align:center;color:#6e1418}
+.how small{display:block;font-size:13px;color:#7a4a2a;margin-top:2px}
+nav{position:-webkit-sticky;position:sticky;top:0;z-index:5;background:#fbf1dc;text-align:center;padding:6px 6px 10px;border-bottom:1px solid #e3cfa3}
+nav a{display:inline-block;margin:4px 3px 0;text-decoration:none;font-weight:bold;font-size:14px;color:#6e1418;border:2px solid #6e1418;border-radius:20px;padding:7px 14px;background:#fff8e8}
 main{max-width:720px;margin:0 auto;padding:0 12px}
-h2{font-family:Georgia,serif;font-size:22px;color:#6e1418;margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid #d4a53c;scroll-margin-top:60px}
+h2{font-family:Georgia,serif;font-size:22px;color:#6e1418;margin:22px 0 8px;padding-bottom:6px;border-bottom:2px solid #d4a53c;scroll-margin-top:64px}
 .item{background:#fffaf0;border:1px solid #e3cfa3;border-radius:12px;padding:11px 12px;margin:0 0 9px}
 .item.on{border-color:#6e1418;box-shadow:0 0 0 1px #6e1418}
-.name{font-weight:bold;font-size:16.5px;margin:0 0 7px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 0}
-.price{font-size:15px;color:#5a2a1a}
+.name{display:flex;align-items:center;font-weight:bold;font-size:16.5px;margin:0 0 7px}
+.dot{flex:none;position:relative;width:15px;height:15px;border:2px solid currentColor;border-radius:3px;margin-right:9px}
+.dot:after{content:"";position:absolute;left:2.5px;top:2.5px;width:6px;height:6px;border-radius:50%;background:currentColor}
+.veg{color:#1e8e3e}.nv{color:#a52714}
+.new{flex:none;margin-left:8px;background:#d4a53c;color:#3a0c0f;font-size:11px;font-weight:bold;letter-spacing:.5px;border-radius:6px;padding:2px 6px}
+.row{display:flex;align-items:center;justify-content:space-between;padding:3px 0}
+.price{font-size:15px;color:#5a2a1a;margin-right:10px}
 .price b{color:#3a0c0f}
-.step{display:flex;align-items:center;gap:0;flex:none}
+.step{display:flex;align-items:center;flex:none}
 .step button{width:40px;height:40px;border-radius:10px;border:2px solid #6e1418;background:#fff;color:#6e1418;font-size:22px;font-weight:bold;line-height:1;cursor:pointer;padding:0}
 .step button.plus{background:#6e1418;color:#fff3dc}
-.step span{min-width:36px;text-align:center;font-weight:bold;font-size:17px}
+.step input{width:54px;height:40px;margin:0 6px;padding:0;text-align:center;font-size:17px;font-weight:bold;color:#3a0c0f;background:#fff;border:2px solid #d9c49a;border-radius:10px;-webkit-appearance:none;appearance:none}
+.step input:focus{outline:none;border-color:#6e1418}
+.empty{text-align:center;font-weight:bold;padding:30px 10px}
 #bar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#6e1418;border-top:3px solid #d4a53c;padding:10px 12px;display:none}
 #bar button{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:720px;margin:0 auto;background:#e9c46a;color:#3a0c0f;border:0;border-radius:12px;padding:14px 16px;font-size:17px;font-weight:bold;cursor:pointer}
-#sheet{position:fixed;inset:0;z-index:20;background:rgba(30,5,6,.6);display:none;align-items:flex-end;justify-content:center}
-#sheet .box{background:#fffaf0;width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 14px 20px}
-#sheet h3{margin:0 0 10px;font-family:Georgia,serif;font-size:21px;color:#6e1418;display:flex;justify-content:space-between;align-items:center}
-#sheet h3 button{border:0;background:#f0dfb8;color:#6e1418;font-size:15px;font-weight:bold;border-radius:8px;padding:8px 12px;cursor:pointer}
-.line{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed #e3cfa3;font-size:15.5px}
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;z-index:20;background:rgba(30,5,6,.6);display:none;align-items:flex-end;justify-content:center}
+.overlay.mid{align-items:center;padding:16px}
+.box{background:#fffaf0;width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 14px 20px}
+.mid .box{border-radius:18px;max-width:420px;text-align:center;padding:22px 18px}
+.box h3{margin:0 0 10px;font-family:Georgia,serif;font-size:21px;color:#6e1418}
+.head{display:flex;justify-content:space-between;align-items:center}
+.head button{border:0;background:#f0dfb8;color:#6e1418;font-size:15px;font-weight:bold;border-radius:8px;padding:8px 12px;cursor:pointer}
+.extra{display:none;background:#fff3cd;border:1px solid #d4a53c;border-radius:10px;padding:9px 10px;font-size:14px;font-weight:bold;color:#6e1418;margin:0 0 8px}
+.line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #e3cfa3;font-size:15.5px}
+.line span:first-child{margin-right:10px}
 .line span:last-child{white-space:nowrap;font-weight:bold}
 .total{display:flex;justify-content:space-between;font-size:19px;font-weight:bold;padding:12px 0 4px;color:#6e1418}
 label{display:block;font-weight:bold;font-size:15px;margin:14px 0 6px}
-select,input{width:100%;font-size:17px;padding:12px;border:2px solid #6e1418;border-radius:10px;background:#fff;color:#3a0c0f}
+select,.box input{width:100%;font-size:17px;padding:12px;border:2px solid #6e1418;border-radius:10px;background:#fff;color:#3a0c0f}
 #err{display:none;color:#b00020;font-weight:bold;font-size:14.5px;margin-top:6px}
-#send{display:block;width:100%;margin-top:16px;background:#25d366;color:#fff;border:0;border-radius:12px;padding:16px;font-size:18px;font-weight:bold;cursor:pointer}
-.hint{font-size:13.5px;color:#5a2a1a;text-align:center;margin:10px 0 0;line-height:1.5}
+.green{display:block;width:100%;margin-top:16px;background:#25d366;color:#fff;border:0;border-radius:12px;padding:16px;font-size:18px;font-weight:bold;cursor:pointer}
+.plain{display:block;width:100%;margin-top:10px;background:#fff;color:#6e1418;border:2px solid #6e1418;border-radius:12px;padding:13px;font-size:16px;font-weight:bold;cursor:pointer}
+.hint{font-size:13.5px;color:#5a2a1a;text-align:center;margin:10px 0 0;line-height:1.55}
+.hint a{color:#6e1418;font-weight:bold}
+#toast{position:fixed;left:12px;right:12px;bottom:96px;z-index:30;max-width:520px;margin:0 auto;background:#1f3d2a;color:#fff;border-radius:12px;padding:13px 14px;font-size:15px;font-weight:bold;text-align:center;line-height:1.45;display:none}
 footer{max-width:720px;margin:26px auto 0;padding:0 14px;text-align:center;font-size:13.5px;line-height:1.7;color:#5a2a1a}
 footer a{color:#6e1418;font-weight:bold}
 </style>
@@ -50,9 +117,12 @@ footer a{color:#6e1418;font-weight:bold}
   <h1>AL-LAZIZ FOOD PARK</h1>
   <p>Good Food.. Good Mood &nbsp;|&nbsp; Authentic Mughlai</p>
 </header>
-<p class="how">Item chunein, apna table number batayein, aur order WhatsApp par bhej dein.</p>
+<div class="wrap"><div id="notice" class="notice"></div></div>
+<p class="how">Item chunein, table number chunein, aur order WhatsApp par bhej dein.
+  <small>Zyada quantity? Beech wale number par tap karke likh dein, jaise 40.</small></p>
 <nav id="nav"></nav>
 <main id="menu"></main>
+<noscript><p class="empty">Menu dekhne ke liye browser mein JavaScript chalu karein.</p></noscript>
 
 <footer>
   Mirza Complex (First Floor), Alinagar Chauraha, Mubarakpur<br>
@@ -61,9 +131,10 @@ footer a{color:#6e1418;font-weight:bold}
 
 <div id="bar"><button type="button" id="open"><span id="barL"></span><span>Order dekhein &rsaquo;</span></button></div>
 
-<div id="sheet">
+<div id="sheet" class="overlay">
   <div class="box">
-    <h3>Aapka Order <button type="button" id="close">Aur jodein</button></h3>
+    <div class="head"><h3>Aapka Order</h3><button type="button" id="close">Aur jodein</button></div>
+    <div id="extra" class="extra"></div>
     <div id="lines"></div>
     <div class="total"><span>Total</span><span id="tot"></span></div>
     <label for="table">Table number</label>
@@ -71,145 +142,224 @@ footer a{color:#6e1418;font-weight:bold}
     <div id="err">Pehle apna table number chunein.</div>
     <label for="note">Koi khaas baat? (optional)</label>
     <input id="note" type="text" maxlength="120" placeholder="Jaise: kam teekha, pyaaz alag se">
-    <button type="button" id="send">WhatsApp par Order Bhejein</button>
-    <p class="hint">WhatsApp khulega aur order likha hua milega. Wahan bas "Send" dabayein.</p>
+    <button type="button" id="send" class="green">WhatsApp par Order Bhejein</button>
+    <p class="hint">WhatsApp khulega aur order likha hua milega. Wahan bas "Send" dabayein.<br>
+      WhatsApp nahi chal raha? Call karein: <a id="call" href="tel:+917388907339">7388907339</a></p>
   </div>
 </div>
 
+<div id="ask" class="overlay mid">
+  <div class="box">
+    <h3>Order bhej diya?</h3>
+    <p class="hint" style="margin:0">Agar WhatsApp mein "Send" daba diya hai to "Haan" chunein.</p>
+    <button type="button" id="yes" class="green">Haan, bhej diya</button>
+    <button type="button" id="no" class="plain">Nahi, abhi bhejna hai</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
 <script>
-/* ====== YAHAN BADLEIN ======
-   WA    : jis WhatsApp number par order aana hai (91 ke saath, bina + ke)
-   TABLES: kitni tables hain
-   MENU  : item ka naam, phir [label, rate] ki list. Rate badalna ho to bas number badlein. */
-var WA = "917388907339";
-var TABLES = 20;
-var MENU = [
-  { cat: "Starter", items: [
-    ["Seekh Kabab",            [["per pc", 30]]],
-    ["Boti Kabab",             [["", 30]]],
-    ["Malai Tikka",            [["", 100]]],
-    ["Afghani Tikka",          [["", 100]]],
-    ["AL-Laziz Special Tikka", [["", 150]]],
-    ["Chicken Angara",         [["", 100]]],
-    ["Chicken 65",             [["Full", 100], ["Half", 50]]],
-    ["Ginger Chicken",         [["Full", 100], ["Half", 50]]]
-  ]},
-  { cat: "Gravy", items: [
-    ["Butter Chicken",        [["Full", 180], ["Half", 120]]],
-    ["Chicken Haryali",       [["Full", 180], ["Half", 120]]],
-    ["Chicken Masala",        [["Full", 180], ["Half", 120]]],
-    ["Chicken Kastoori",      [["Full", 180], ["Half", 120]]],
-    ["Chicken Achari",        [["Full", 180], ["Half", 120]]],
-    ["Chicken Chatpata",      [["Full", 180], ["Half", 120]]],
-    ["Chicken Kolhapuri",     [["Full", 180], ["Half", 120]]],
-    ["Chicken Afghani",       [["Full", 180], ["Half", 120]]],
-    ["Chicken Mughlai",       [["Full", 180], ["Half", 120]]],
-    ["Chicken Kali Mirch",    [["Full", 180], ["Half", 120]]],
-    ["Chicken Punjabi",       [["Full", 180], ["Half", 120]]],
-    ["Chicken Peshawari",     [["Full", 180], ["Half", 120]]],
-    ["Chicken Kadhai",        [["Full", 180], ["Half", 120]]],
-    ["AL-Laziz Spl. Chicken", [["Full", 180], ["Half", 120]]],
-    ["Shahi Paneer",          [["Full", 180], ["Half", 120]]],
-    ["Kaju Paneer",           [["Full", 180], ["Half", 120]]],
-    ["Dal Fry",               [["", 70]]]
-  ]},
-  { cat: "Bread / Rice", items: [
-    ["Roomali Roti", [["per pc", 8]]],
-    ["Butter Naan",  [["", 12]]],
-    ["Plain Naan",   [["", 10]]],
-    ["Plain Rice",   [["Full", 30], ["Half", 20]]]
-  ]}
-];
-/* ====== YAHAN TAK ====== */
+(function () {
+  "use strict";
+  var D = document, RS = "₹", H3 = 3 * 3600 * 1000;
+  var CKEY = "alz_cart_v2", LKEY = "alz_last_v2", PKEY = "alz_pending_v2";
+  function $(id) { return D.getElementById(id); }
+  function el(tag, cls, text) { var n = D.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function fmt(n) { return Math.round(n) === n ? String(n) : n.toFixed(2); }
 
-var cart = {};
-var KEY = "allaziz_cart_v1";
-try { cart = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { cart = {}; }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch (e) {} }
-function $(id) { return document.getElementById(id); }
-function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
-
-var menuEl = $("menu"), navEl = $("nav");
-MENU.forEach(function (c, ci) {
-  var a = el("a", "", c.cat); a.href = "#c" + ci; navEl.appendChild(a);
-  var h = el("h2", "", c.cat); h.id = "c" + ci; menuEl.appendChild(h);
-  c.items.forEach(function (it, ii) {
-    var card = el("div", "item"); card.id = "i" + ci + "_" + ii;
-    card.appendChild(el("p", "name", it[0]));
-    it[1].forEach(function (v, vi) {
-      var k = ci + "_" + ii + "_" + vi;
-      var row = el("div", "row");
-      var p = el("span", "price");
-      var isSize = v[0] === "Full" || v[0] === "Half";
-      if (isSize) p.appendChild(document.createTextNode(v[0] + "  "));
-      p.appendChild(el("b", "", "₹" + v[1]));
-      if (v[0] && !isSize) p.appendChild(document.createTextNode(" " + v[0]));
-      var st = el("div", "step");
-      var m = el("button", "", "−"); m.type = "button"; m.setAttribute("aria-label", it[0] + " kam karein");
-      var q = el("span", "", "0"); q.id = "q" + k;
-      var pl = el("button", "plus", "+"); pl.type = "button"; pl.setAttribute("aria-label", it[0] + " jodein");
-      m.onclick = function () { change(k, -1); };
-      pl.onclick = function () { change(k, 1); };
-      st.appendChild(m); st.appendChild(q); st.appendChild(pl);
-      row.appendChild(p); row.appendChild(st); card.appendChild(row);
+  /* ---------- menu list padhna (upar wala hissa) ---------- */
+  var cfg = { wa: "917388907339", tables: 20, notice: "" }, cats = [];
+  var FLAG = /^(off|band|veg|new)$/i;
+  function flag(it, w) { w = w.toLowerCase(); if (w === "off" || w === "band") it.off = true; else if (w === "veg") it.veg = true; else it.isNew = true; }
+  function setting(k, v) {
+    if (k === "WHATSAPP") { var d = v.replace(/\D/g, ""); if (d.length === 10) d = "91" + d; if (d.length >= 11 && d.length <= 15) cfg.wa = d; }
+    else if (k === "TABLES") { var n = parseInt(v, 10); if (n >= 1 && n <= 300) cfg.tables = n; }
+    else cfg.notice = v;
+  }
+  function item(line) {
+    var f = line.split("|"), name = f[0].trim(), spec = "", i, t;
+    if (!name || f.length < 2) return null;
+    var it = { name: name, off: false, veg: false, isNew: false, vars: [] };
+    for (i = 1; i < f.length; i++) {
+      var words = f[i].trim().split(/[\s,]+/).filter(function (w) { return w; });
+      if (words.length && words.every(function (w) { return FLAG.test(w); })) { words.forEach(function (w) { flag(it, w); }); continue; }
+      if (!spec && /\d/.test(f[i])) spec = f[i];
+    }
+    while ((t = spec.match(/\s+(off|band|veg|new)\s*$/i))) { flag(it, t[1]); spec = spec.slice(0, t.index); }
+    spec.replace(/\/-/g, " ").split(/[,;\/]/).forEach(function (p) {
+      p = p.replace(/₹|\brs\.?|\binr\b/gi, " ");
+      var m = p.match(/\d+(?:\.\d+)?/);
+      if (!m) return;
+      var before = p.slice(0, m.index).replace(/[\s:=\-]+$/, "").trim();
+      var after = p.slice(m.index + m[0].length).replace(/^[\s\/\-]+/, "").trim();
+      it.vars.push({ label: before || after, pre: !!before, price: parseFloat(m[0]) });
     });
-    menuEl.appendChild(card);
-  });
-});
-
-var sel = $("table");
-sel.appendChild(new Option("Chunein...", ""));
-for (var t = 1; t <= TABLES; t++) sel.appendChild(new Option("Table " + t, "Table " + t));
-sel.appendChild(new Option("Parcel / Takeaway", "Parcel"));
-
-function change(k, d) {
-  var n = Math.max(0, Math.min(50, (cart[k] || 0) + d));
-  if (n) cart[k] = n; else delete cart[k];
-  save(); refresh();
-}
-function rows() {
-  var out = [];
-  MENU.forEach(function (c, ci) { c.items.forEach(function (it, ii) { it[1].forEach(function (v, vi) {
-    var n = cart[ci + "_" + ii + "_" + vi];
-    if (n) out.push({ name: it[0] + ((v[0] === "Full" || v[0] === "Half") ? " (" + v[0] + ")" : ""), qty: n, amt: n * v[1] });
-  }); }); });
-  return out;
-}
-function refresh() {
-  var count = 0, total = 0;
-  MENU.forEach(function (c, ci) { c.items.forEach(function (it, ii) {
-    var any = false;
-    it[1].forEach(function (v, vi) {
-      var k = ci + "_" + ii + "_" + vi, n = cart[k] || 0;
-      $("q" + k).textContent = n; if (n) { any = true; count += n; total += n * v[1]; }
+    return it.vars.length ? it : null;
+  }
+  function parse(txt) {
+    var cur = null;
+    txt.split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim(), m;
+      if (!line || line.slice(0, 2) === "//") return;
+      if ((m = line.match(/^(WHATSAPP|TABLES|NOTICE)\s*[=:]\s*(.*)$/i))) { setting(m[1].toUpperCase(), m[2].trim()); return; }
+      if ((m = line.match(/^\[(.+)\]$/))) { cur = { name: m[1].trim(), items: [] }; cats.push(cur); return; }
+      var it = item(line);
+      if (!it) { if (window.console) console.warn("Menu line samajh nahi aayi:", line); return; }
+      if (!cur) { cur = { name: "Menu", items: [] }; cats.push(cur); }
+      cur.items.push(it);
     });
-    $("i" + ci + "_" + ii).className = any ? "item on" : "item";
-  }); });
-  $("bar").style.display = count ? "block" : "none";
-  $("barL").textContent = count + (count === 1 ? " item" : " items") + "  •  ₹" + total;
-  var L = $("lines"); L.textContent = "";
-  rows().forEach(function (r) {
-    var d = el("div", "line"); d.appendChild(el("span", "", r.name + "  × " + r.qty)); d.appendChild(el("span", "", "₹" + r.amt)); L.appendChild(d);
+  }
+
+  /* ---------- menu dikhana ---------- */
+  var ROWS = [], cart = {};
+  function build() {
+    var menu = $("menu"), nav = $("nav"), shown = 0;
+    cats.forEach(function (c, ci) {
+      var items = c.items.filter(function (it) { return !it.off; });
+      if (!items.length) return;
+      var a = el("a", "", c.name); a.href = "#c" + ci; nav.appendChild(a);
+      var h = el("h2", "", c.name); h.id = "c" + ci; menu.appendChild(h);
+      items.forEach(function (it) {
+        shown++;
+        var card = el("div", "item"), nm = el("p", "name"), multi = it.vars.length > 1;
+        nm.appendChild(el("span", "dot " + (it.veg ? "veg" : "nv")));
+        nm.appendChild(el("span", "", it.name));
+        if (it.isNew) nm.appendChild(el("span", "new", "NEW"));
+        card.appendChild(nm);
+        it.vars.forEach(function (v) {
+          var key = it.name + "|" + v.label;
+          var r = { key: key, price: v.price, card: card, msg: it.name + ((multi || v.pre) && v.label ? " (" + v.label + ")" : "") };
+          var row = el("div", "row"), pr = el("span", "price");
+          if (v.pre) { pr.appendChild(D.createTextNode(v.label + " ")); pr.appendChild(el("b", "", RS + fmt(v.price))); }
+          else { pr.appendChild(el("b", "", RS + fmt(v.price))); if (v.label) pr.appendChild(D.createTextNode(" " + v.label)); }
+          var st = el("div", "step");
+          var minus = el("button", "", "−"); minus.type = "button"; minus.setAttribute("aria-label", r.msg + " kam karein");
+          var inp = el("input"); inp.type = "text"; inp.value = "0"; inp.setAttribute("inputmode", "numeric"); inp.setAttribute("pattern", "[0-9]*");
+          inp.setAttribute("autocomplete", "off"); inp.setAttribute("aria-label", r.msg + " quantity");
+          var plus = el("button", "plus", "+"); plus.type = "button"; plus.setAttribute("aria-label", r.msg + " jodein");
+          r.inp = inp;
+          minus.onclick = function () { set(key, (cart[key] || 0) - 1); };
+          plus.onclick = function () { set(key, (cart[key] || 0) + 1); };
+          inp.onfocus = function () { setTimeout(function () { try { inp.setSelectionRange(0, inp.value.length); } catch (e) {} }, 0); };
+          inp.oninput = function () {
+            var d = inp.value.replace(/\D/g, "").slice(0, 3);
+            if (d !== inp.value) inp.value = d;
+            set(key, d === "" ? 0 : parseInt(d, 10));
+          };
+          inp.onblur = function () { inp.value = cart[key] || 0; };
+          st.appendChild(minus); st.appendChild(inp); st.appendChild(plus);
+          row.appendChild(pr); row.appendChild(st); card.appendChild(row);
+          ROWS.push(r);
+        });
+        menu.appendChild(card);
+      });
+    });
+    if (!shown) menu.appendChild(el("p", "empty", "Menu abhi update ho raha hai. Kripya staff se order dein."));
+  }
+
+  /* ---------- order ---------- */
+  function save() { store(CKEY, { t: Date.now(), items: cart }); }
+  function set(key, n) {
+    n = Math.max(0, Math.min(999, n || 0));
+    if (n) cart[key] = n; else delete cart[key];
+    save(); refresh();
+  }
+  function lastSent() { var l = load(LKEY); return l && l.table && Date.now() - l.t < H3 ? l : null; }
+  function totals() { var c = 0, t = 0; ROWS.forEach(function (r) { var n = cart[r.key] || 0; c += n; t += n * r.price; }); return { count: c, total: t }; }
+  function refresh() {
+    var seen = [];
+    ROWS.forEach(function (r) {
+      var n = cart[r.key] || 0;
+      if (D.activeElement !== r.inp) r.inp.value = n;
+      if (seen.indexOf(r.card) < 0) { seen.push(r.card); r.card.className = "item"; }
+      if (n) r.card.className = "item on";
+    });
+    var T = totals(), L = $("lines"), last = lastSent();
+    $("bar").style.display = T.count ? "block" : "none";
+    $("barL").textContent = T.count + (T.count === 1 ? " item" : " items") + "  •  " + RS + fmt(T.total);
+    L.textContent = "";
+    ROWS.forEach(function (r) {
+      var n = cart[r.key]; if (!n) return;
+      var d = el("div", "line"); d.appendChild(el("span", "", r.msg + "  × " + n)); d.appendChild(el("span", "", RS + fmt(n * r.price))); L.appendChild(d);
+    });
+    $("tot").textContent = RS + fmt(T.total);
+    $("extra").style.display = last ? "block" : "none";
+    if (last) $("extra").textContent = "Aapka pehla order (" + last.table + ") ja chuka hai. Yeh EXTRA order jaayega.";
+    if (!T.count) $("sheet").style.display = "none";
+  }
+  var sel = $("table");
+  function message() {
+    var last = lastSent(), lines = [], total = 0, i = 0;
+    lines.push(last ? "*AL-LAZIZ - EXTRA ORDER*" : "*AL-LAZIZ Food Park - Naya Order*");
+    lines.push("*" + sel.value + "*");
+    if (last) lines.push("(pehle wale order ke alawa)");
+    lines.push("");
+    ROWS.forEach(function (r) {
+      var n = cart[r.key]; if (!n) return;
+      i++; total += n * r.price;
+      lines.push(i + ". " + r.msg + " x " + n + " = " + RS + fmt(n * r.price));
+    });
+    lines.push("", "*Total: " + RS + fmt(total) + "*");
+    var note = $("note").value.trim(); if (note) lines.push("Note: " + note);
+    return lines.join("\n");
+  }
+  function toast(t) { var b = $("toast"); b.textContent = t; b.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(function () { b.style.display = "none"; }, 5000); }
+  function showAsk() { $("sheet").style.display = "none"; $("ask").style.display = "flex"; }
+
+  $("open").onclick = function () { $("sheet").style.display = "flex"; };
+  $("close").onclick = function () { $("sheet").style.display = "none"; };
+  $("sheet").onclick = function (e) { if (e.target === this) this.style.display = "none"; };
+  sel.onchange = function () { $("err").style.display = "none"; };
+  var left = false;
+  $("send").onclick = function () {
+    if (!totals().count) return;
+    if (!sel.value) { $("err").style.display = "block"; sel.focus(); return; }
+    var url = "https://wa.me/" + cfg.wa + "?text=" + encodeURIComponent(message());
+    store(PKEY, { t: Date.now(), table: sel.value });
+    left = false;
+    window.location.href = url;
+  };
+  $("yes").onclick = function () {
+    var p = load(PKEY);
+    store(LKEY, { t: Date.now(), table: p && p.table ? p.table : sel.value });
+    store(PKEY, null);
+    cart = {}; save(); $("note").value = ""; refresh();
+    $("ask").style.display = "none";
+    toast("Shukriya! Order mil gaya hai. Aur kuch chahiye to item jod kar dobara bhejein.");
+  };
+  $("no").onclick = function () { store(PKEY, null); $("ask").style.display = "none"; $("sheet").style.display = "flex"; };
+  D.addEventListener("visibilitychange", function () {
+    if (!load(PKEY)) return;
+    if (D.visibilityState === "hidden") left = true;
+    else if (left) { left = false; showAsk(); }
   });
-  $("tot").textContent = "₹" + total;
-  if (!count) $("sheet").style.display = "none";
-}
-function message() {
-  var r = rows(), total = 0, lines = ["*AL-LAZIZ Food Park - Naya Order*", "*" + sel.value + "*", ""];
-  r.forEach(function (x, i) { total += x.amt; lines.push((i + 1) + ". " + x.name + " x " + x.qty + " = ₹" + x.amt); });
-  lines.push("", "*Total: ₹" + total + "*");
-  var note = $("note").value.trim(); if (note) lines.push("Note: " + note);
-  return lines.join("\n");
-}
-$("open").onclick = function () { $("sheet").style.display = "flex"; };
-$("close").onclick = function () { $("sheet").style.display = "none"; };
-$("sheet").onclick = function (e) { if (e.target === this) this.style.display = "none"; };
-sel.onchange = function () { $("err").style.display = "none"; };
-$("send").onclick = function () {
-  if (!sel.value) { $("err").style.display = "block"; sel.focus(); return; }
-  window.location.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(message());
-};
-refresh();
+  window.addEventListener("pageshow", function (e) { if (e.persisted && load(PKEY)) showAsk(); });
+
+  /* ---------- shuru ---------- */
+  try {
+    parse($("menu-data").textContent);
+    build();
+    var c = load(CKEY);
+    if (c && c.items && Date.now() - c.t < H3) {
+      ROWS.forEach(function (r) { var n = parseInt(c.items[r.key], 10); if (n > 0) cart[r.key] = Math.min(999, n); });
+    }
+    if (cfg.notice) { $("notice").textContent = cfg.notice; $("notice").style.display = "block"; }
+    sel.appendChild(new Option("Chunein...", ""));
+    for (var t = 1; t <= cfg.tables; t++) sel.appendChild(new Option("Table " + t, "Table " + t));
+    sel.appendChild(new Option("Parcel / Takeaway", "Parcel / Takeaway"));
+    var last = lastSent(); if (last) sel.value = last.table;
+    $("call").href = "tel:+" + cfg.wa; $("call").textContent = cfg.wa.slice(-10);
+    refresh();
+    var p = load(PKEY);
+    if (p) { if (Date.now() - p.t < 2 * 3600 * 1000) showAsk(); else store(PKEY, null); }
+  } catch (e) {
+    $("menu").textContent = "Menu load nahi hua. Kripya staff se order dein.";
+    if (window.console) console.error(e);
+  }
+})();
 </script>
 </body>
 </html>
